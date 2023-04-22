@@ -11,7 +11,7 @@ def align(in_fasta, rt, threads, op, odir):
                   " | samtools sort -o " + odir + "/" + op + ".bam"
     print(minimap_cmd)
     call(minimap_cmd, shell=True)
-    samtools_cmd = "samtools index " + odir + "/" + op + ".bam -@ " + threads
+    samtools_cmd = "samtools index " + odir + "/" + op + ".bam -@ " + str(threads)
     print(samtools_cmd)
     call(samtools_cmd, shell=True)
 
