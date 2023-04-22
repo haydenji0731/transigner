@@ -133,8 +133,8 @@ def main():
 
     abundance, tot_trs = extract_transcripts(rt)
 
-    if not os.path.exists(in_aln + ".bai"):
-        pysam.index(in_aln)
+    # if not os.path.exists(in_aln + ".bai"):
+    #     pysam.index(in_aln)
 
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Loading query alignment file")
     assignment, tot_mapped = assign_compatibility(in_aln, tot_trs)
