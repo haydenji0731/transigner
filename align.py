@@ -10,11 +10,11 @@ def align(in_fasta, rt, threads, op, odir):
     minimap_cmd = "minimap2 -ax map-ont -t " + str(threads) + " " + rt + " " + in_fasta + \
                   " | samtools view -b > " + odir + "/" + op + ".bam"
     print(minimap_cmd)
-    call(minimap_cmd)
-    samtools_cmd = "samtools sort -o " + odir + "/" + op + ".nsorted.bam " + odir + \
+    call(minimap_cmd, shell=True)
+    samtools_cmd = "samtools sort -o " + odir + "/" + op + ".sorted.bam " + odir + \
                    "/" + op + ".bam"
     print(samtools_cmd)
-    call(samtools_cmd)
+    call(samtools_cmd, shell=True)
 
 
 def main():
