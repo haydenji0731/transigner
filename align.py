@@ -8,10 +8,11 @@ from time import strftime
 def align(in_fasta, rt, threads, op, odir):
     # align as if genomic reads
     minimap_cmd = "minimap2 -ax map-ont -t " + str(threads) + " " + rt + " " + in_fasta + \
-                  " | samtools view -b > " + odir + op + ".bam"
+                  " | samtools view -b > " + odir + "/" + op + ".bam"
     print(minimap_cmd)
     # call(minimap_cmd)
-    samtools_cmd = "samtools sort -o " + odir + op + ".nsorted.bam " + odir + op + ".bam"
+    samtools_cmd = "samtools sort -o " + odir + "/" + op + ".nsorted.bam " + odir + \
+                   "/" + op + ".bam"
     print(samtools_cmd)
     # call(samtools_cmd)
 
