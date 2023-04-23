@@ -31,19 +31,13 @@ def step_m():
         alpha = assignment[qname] # dict() object
         for tname in alpha.keys():
             rho[tname] += alpha[tname]
-    # normalize
     z = sum(rho.values())
-    print("(sanity check) total number of assigned reads: %d" % z)
+    # print("(sanity check) total number of assigned reads: %d" % z)
     for tname in abundance.keys():
         if rho[tname] != 0:
             rho[tname] /= z
-    rho_sum = sum(rho.values())
-    print("(sanity check) sum of all rhos: %f" % rho_sum)
-    # if not converged:
-    #     for qname in assignment.keys():
-    #         alpha = assignment[qname]
-    #         for tname in alpha.keys():
-    #             assignment[qname][tname] = rho[tname]
+    # rho_sum = sum(rho.values())
+    # print("(sanity check) sum of all rhos: %f" % rho_sum)
     return rho
 
 
