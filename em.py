@@ -4,11 +4,16 @@ import argparse
 import pysam
 import os
 from time import strftime
-import math
 import utils
+import math
 
 
-def step_e(assignment):
+assignment = dict()
+abundance = dict()
+
+
+def step_e():
+    global assignment
     for qname in assignment.keys():
         alpha = assignment[qname] # dict() obj
         z = sum(alpha.values())
@@ -16,11 +21,13 @@ def step_e(assignment):
             assignment[qname][tname] /= z
 
 
-def step_m(abundance, assignment):
+def step_m():
+    global abundance
+    global assignment
     rho = dict()
     for tname in abundance.keys():
         rho[tname] = 0
-    for qname in assignment:
+    for qname in assignment.keys():
         alpha = assignment[qname] # dict() object
         for tname in alpha.keys():
             rho[tname] += alpha[tname]
@@ -30,25 +37,34 @@ def step_m(abundance, assignment):
     for tname in abundance.keys():
         if rho[tname] != 0:
             rho[tname] /= z
-    tpm_sum = sum(rho.values())
-    print("(sanity check) sum of all rhos: %f" % tpm_sum)
-    for qname in assignment:
-        alpha = assignment[qname]
-        for tname in alpha.keys():
-            assignment[tname] = rho[tname]
+    rho_sum = sum(rho.values())
+    print("(sanity check) sum of all rhos: %f" % rho_sum)
+    # if not converged:
+    #     for qname in assignment.keys():
+    #         alpha = assignment[qname]
+    #         for tname in alpha.keys():
+    #             assignment[qname][tname] = rho[tname]
     return rho
 
 
-def iter_em(assignment, abundance, min_delta):
+def iter_em(min_delta, max_iter):
     converged = False
     iteration = 0
+    global abundance
+    global assignment
     while not converged:
         iteration += 1
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "EM iteration #%d:" % iteration)
-        step_e(assignment)
-        abundance_new = step_m(abundance, assignment)
+        for qname in assignment.keys():
+            alpha = assignment[qname]
+            for tname in alpha.keys():
+                assignment[qname][tname] = abundance[tname]
+        step_e()
+        abundance_new = step_m()
         converged = has_converged(abundance, abundance_new, min_delta)
         abundance = abundance_new
+        if iteration >= max_iter:
+            converged = True
 
 
 def has_converged(abundance_old, abundance_new, min_delta):
@@ -56,15 +72,15 @@ def has_converged(abundance_old, abundance_new, min_delta):
     for tname in abundance_old.keys():
         delta = abs(abundance_new[tname] - abundance_old[tname])
         max_delta = max(max_delta, delta)
+    print(strftime("%Y-%m-%d %H:%M:%S | ") + "delta: %.10f" % max_delta)
     if max_delta < min_delta:
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Convergence condition satisfied")
         return True
-    print(strftime("%Y-%m-%d %H:%M:%S | ") + "delta: %.5f" % max_delta)
     return False
 
 
 def extract_transcripts(rt):
-    abundance = dict()
+    global abundance
     fh = open(rt, 'r')
     tot = 0
     for line in fh:
@@ -81,11 +97,10 @@ def extract_transcripts(rt):
                     break
     for tname in abundance.keys():
         abundance[tname] = 1 / tot
-    return abundance, tot
 
 
-def assign_compatibility(in_aln, tot_trs):
-    assignment = dict()
+def assign_compatibility(in_aln):
+    global assignment
     unmapped = 0
     qnames = set()
     with pysam.AlignmentFile(in_aln, 'rb') as fh:
@@ -106,10 +121,10 @@ def assign_compatibility(in_aln, tot_trs):
             else:
                 qname = brec.query_name
                 tname = brec.reference_name
-                assignment[qname][tname] = 1 / tot_trs
+                assignment[qname][tname] = 0
     tot = unmapped + mapped
     print("Loaded total %d reads of which %d are mapped / %d are unmapped" % (tot, mapped, unmapped))
-    return assignment, mapped
+    return mapped
 
 
 def main():
@@ -118,11 +133,10 @@ def main():
     parser.add_argument('-i', '--input_aln', type=str, help="input alignment file", required=True)
     parser.add_argument('-ref-gtf', '--ref_gtf', type=str, help="reference transcriptome annotation to match against",
                         required=True)
-    parser.add_argument('-thres', '--threshold', type=int, help="threshold for stopping em", default=0.001,
-                        nargs='?', const=0.001)
+    parser.add_argument('-thres', '--threshold', type=int, help="threshold for stopping EM", default=0.00001)
+    parser.add_argument('-max-iter', '--max_iteration', type=int, help="maximum number of EM iterations", default=100)
     parser.add_argument('-o', '--output_dir', type=str, help="output directory", required=True)
-    parser.add_argument('-op', '--output_prefix', type=str, help="output files prefix", default='quant',
-                        nargs='?', const='quant')
+    parser.add_argument('-op', '--output_prefix', type=str, help="output files prefix", default='quant')
 
     args = parser.parse_args()
     rt = args.ref_gtf
@@ -130,16 +144,17 @@ def main():
     min_delta = args.threshold
     out_dir = args.output_dir
     out_prefix = args.output_prefix
+    max_iter = args.max_iteration
 
-    abundance, tot_trs = extract_transcripts(rt)
+    extract_transcripts(rt)
 
-    # if not os.path.exists(in_aln + ".bai"):
-    #     pysam.index(in_aln)
+    if not os.path.exists(in_aln + ".bai"):
+        pysam.index(in_aln)
 
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Loading query alignment file")
-    assignment, tot_mapped = assign_compatibility(in_aln, tot_trs)
+    tot_mapped = assign_compatibility(in_aln)
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Finished loading. Beginning EM.")
-    iter_em(assignment, abundance, min_delta)
+    iter_em(min_delta, max_iter)
     utils.write_results(out_dir, out_prefix, assignment, abundance, tot_mapped)
 
 

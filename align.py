@@ -17,6 +17,7 @@ def align(in_fasta, rt, threads, op, odir):
 
 
 def main():
+    
     parser = argparse.ArgumentParser(description="align reads to the transcriptome")
     parser.add_argument('-i', '--input_fasta', type=str, help="input fasta file containing reads", required=True)
     parser.add_argument('-ref-fa', '--ref_fasta', type=str, help="reference transcriptome fasta to align to",
