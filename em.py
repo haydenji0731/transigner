@@ -66,6 +66,7 @@ def has_converged(abundance_old, abundance_new, min_delta):
     for tname in abundance_old.keys():
         delta = abs(abundance_new[tname] - abundance_old[tname])
         max_delta = max(max_delta, delta)
+    max_delta *= 1000000
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "delta: %.10f" % max_delta)
     if max_delta < min_delta:
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Convergence condition satisfied")
@@ -127,7 +128,7 @@ def main():
     parser.add_argument('-i', '--input_aln', type=str, help="input alignment file", required=True)
     parser.add_argument('-ref-gtf', '--ref_gtf', type=str, help="reference transcriptome annotation to match against",
                         required=True)
-    parser.add_argument('-thres', '--threshold', type=int, help="threshold for stopping EM", default=0.00001)
+    parser.add_argument('-thres', '--threshold', type=float, help="min TPM change for stopping EM", default=1)
     parser.add_argument('-max-iter', '--max_iteration', type=int, help="maximum number of EM iterations", default=100)
     parser.add_argument('-o', '--output_dir', type=str, help="output directory", required=True)
     parser.add_argument('-op', '--output_prefix', type=str, help="output files prefix", default='quant')
