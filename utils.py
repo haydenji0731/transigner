@@ -9,7 +9,7 @@ def write_results(out_dir, out_prefix, assignment, abundance, tot_mapped):
     assignment_fn = out_dir + "/" + out_prefix + ".assignment.tsv"
     with open(abundance_fn, 'w') as fh:
         writer = csv.writer(fh, delimiter='\t')
-        writer.writerow(['transcript_id', 'relative abundance', 'raw read count', 'TPM'])
+        writer.writerow(['transcript_id', 'relative_abundance', 'raw_read_count', 'TPM'])
         for tname in abundance.keys():
             rho = abundance[tname]
             rc = rho * tot_mapped

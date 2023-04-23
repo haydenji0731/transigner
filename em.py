@@ -128,7 +128,7 @@ def main():
     parser.add_argument('-i', '--input_aln', type=str, help="input alignment file", required=True)
     parser.add_argument('-ref-gtf', '--ref_gtf', type=str, help="reference transcriptome annotation to match against",
                         required=True)
-    parser.add_argument('-thres', '--threshold', type=float, help="min TPM change for stopping EM"g, default=10)
+    parser.add_argument('-thres', '--threshold', type=float, help="min TPM change for stopping EM", default=10)
     parser.add_argument('-max-iter', '--max_iteration', type=int, help="maximum number of EM iterations", default=100)
     parser.add_argument('-o', '--output_dir', type=str, help="output directory", required=True)
     parser.add_argument('-op', '--output_prefix', type=str, help="output files prefix", default='quant')
@@ -140,6 +140,17 @@ def main():
     out_dir = args.output_dir
     out_prefix = args.output_prefix
     max_iter = args.max_iteration
+
+    print("\n-----------------------")
+    print("Run Parameters")
+    print("-----------------------")
+    print("reference gtf: " + rt)
+    print("input bam: " + in_aln)
+    print("minimum TPM change: " + str(min_delta))
+    print("maximum iteration: " + str(max_iter))
+    print("output directory: " + out_dir)
+    print("output prefix: " + out_prefix)
+    print("-----------------------")
 
     extract_transcripts(rt)
 
