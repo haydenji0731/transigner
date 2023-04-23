@@ -150,7 +150,7 @@ def main():
     print("maximum iteration: " + str(max_iter))
     print("output directory: " + out_dir)
     print("output prefix: " + out_prefix)
-    print("-----------------------")
+    print("-----------------------\n")
 
     extract_transcripts(rt)
 
