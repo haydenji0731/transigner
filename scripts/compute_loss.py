@@ -25,7 +25,7 @@ def load_gtf(fname):
                 elif key == "TPM":
                     tpm = float(val)
                     break
-        gtf_d[tid] = (rid, tpm)
+            gtf_d[tid] = (rid, tpm)
 
 
 def load_true_tpm(fname):
@@ -53,7 +53,7 @@ def calc_loss(fname):
             first = False
             continue
         tid = line.split("\t")[0]
-        tpm = line.split("\t")[3]
+        tpm = float(line.split("\t")[3])
         rid = gtf_d[tid][0]
         st_tpm = gtf_d[tid][1]
         if rid is not None:
@@ -65,14 +65,14 @@ def calc_loss(fname):
             loss += tpm
             st_loss += st_tpm
         # remaining = not assembled but positive TPM
-        remaining = sum(tpm_d.values())
-        loss += remaining
-        st_loss += remaining
+    remaining = sum(tpm_d.values())
+    loss += remaining
+    st_loss += remaining
 
-        # total number of reference transcripts
-        tot = len(tpm_d.keys())
-        loss /= tot
-        st_loss /= tot
+    # total number of reference transcripts
+    tot = len(tpm_d.keys())
+    loss /= tot
+    st_loss /= tot
     return loss, st_loss
 
 

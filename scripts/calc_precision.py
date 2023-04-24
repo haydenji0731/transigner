@@ -37,19 +37,29 @@ def load_assignment(fname):
     first = True
     tp = 0
     fp = 0
+    missed = 0
+    missed_conf = 0
     tp_conf = 0
     fp_conf = 0
     global gtf_d
+    reads = 0
     for line in fh:
+        reads += 1
         if first:
             first = False
             continue
         tmp = line.split("\t")[0].split("_")
-        pred = tmp[0] + tmp[1]
+        if tmp[0] == "unassigned":
+            pred = tmp[0] + "_" + tmp[1] + "_" + tmp[2]
+        else:
+            pred = tmp[0] + "_" + tmp[1]
         tid = line.split("\t")[1]
         label = gtf_d[tid]
         conf = float(line.split("\t")[2])
-        if label is None or pred != label:
+        if label is None:
+            missed += 1
+            missed_conf += conf
+        elif pred != label:
             fp += 1
             fp_conf += conf
         elif pred == label:
@@ -58,17 +68,21 @@ def load_assignment(fname):
     # take average
     fp_conf /= fp
     tp_conf /= tp
-    return tp, tp_conf, fp, fp_conf
+    missed_conf /= missed
+    print("# of reads: " + str(reads))
+    return tp, tp_conf, fp, fp_conf, missed, missed_conf
 
 
 def main(gtf_fn, assignment_fn):
     novel = load_gtf(gtf_fn)
     print("# of novel transcripts: " + str(novel))
-    tp, tp_conf, fp, fp_conf = load_assignment(assignment_fn)
+    tp, tp_conf, fp, fp_conf, missed, missed_conf = load_assignment(assignment_fn)
     print("# of True Positives: " + str(tp))
     print("average confidence for True Positives: " + str(tp_conf))
     print("# of False Positives: " + str(fp))
     print("average confidence for False Positives: " + str(fp_conf))
+    print("# of Missed: " + str(missed))
+    print("average confidence for Missed: " + str(missed_conf))
 
 
 if __name__ == "__main__":
