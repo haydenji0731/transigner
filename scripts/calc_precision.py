@@ -1,4 +1,5 @@
-# imports
+#!/usr/bin/env python
+
 import sys
 
 gtf_d = dict()
@@ -28,6 +29,7 @@ def load_gtf(fname):
                     novel += 1
                     break
         gtf_d[tid] = rid
+    return novel
 
 
 def load_assignment(fname):
@@ -60,11 +62,13 @@ def load_assignment(fname):
 
 
 def main(gtf_fn, assignment_fn):
-    load_gtf(gtf_fn)
+    novel = load_gtf(gtf_fn)
+    print("# of novel transcripts: " + str(novel))
     tp, tp_conf, fp, fp_conf = load_assignment(assignment_fn)
     print("# of True Positives: " + str(tp))
-
+    print("average confidence for True Positives: " + str(tp_conf))
     print("# of False Positives: " + str(fp))
+    print("average confidence for False Positives: " + str(fp_conf))
 
 
 if __name__ == "__main__":
