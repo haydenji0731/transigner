@@ -161,6 +161,10 @@ def main():
     tot_mapped = assign_compatibility(in_aln)
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Finished loading. Beginning EM.")
     iter_em(min_delta, max_iter)
+
+    global assignment
+    global abundance
+
     utils.write_results(out_dir, out_prefix, assignment, abundance, tot_mapped)
 
 
