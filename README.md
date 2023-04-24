@@ -1,1 +1,1 @@
-# TranSigner: long read assigner to transcripts
+# TranSigner: assigning long reads to transcripts
