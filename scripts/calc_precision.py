@@ -48,7 +48,7 @@ def load_assignment(fname):
         pred = tmp[0] + tmp[1]
         tid = line.split("\t")[1]
         label = gtf_d[tid]
-        conf = line.split("\t")[2]
+        conf = float(line.split("\t")[2])
         if label is None or pred != label:
             fp += 1
             fp_conf += conf
