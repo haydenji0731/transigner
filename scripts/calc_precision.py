@@ -68,4 +68,4 @@ def main(gtf_fn, assignment_fn):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2])
