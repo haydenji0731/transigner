@@ -65,9 +65,9 @@ def calc_loss(fname):
             loss += tpm
             st_loss += st_tpm
         # remaining = not assembled but positive TPM
-    remaining = sum(tpm_d.values())
-    loss += remaining
-    st_loss += remaining
+    # remaining = sum(tpm_d.values())
+    # loss += remaining
+    # st_loss += remaining
 
     # total number of reference transcripts
     tot = len(tpm_d.keys())
