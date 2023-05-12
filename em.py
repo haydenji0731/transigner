@@ -7,7 +7,6 @@ from time import strftime
 import utils
 import math
 
-
 assignment = dict()
 abundance = dict()
 
@@ -15,7 +14,7 @@ abundance = dict()
 def step_e():
     global assignment
     for qname in assignment.keys():
-        alpha = assignment[qname] # dict() obj
+        alpha = assignment[qname]  # dict() obj
         z = sum(alpha.values())
         for tname in alpha.keys():
             assignment[qname][tname] /= z
@@ -28,7 +27,7 @@ def step_m():
     for tname in abundance.keys():
         rho[tname] = 0
     for qname in assignment.keys():
-        alpha = assignment[qname] # dict() object
+        alpha = assignment[qname]  # dict() object
         for tname in alpha.keys():
             rho[tname] += alpha[tname]
     z = sum(rho.values())
@@ -59,6 +58,34 @@ def iter_em(min_delta, max_iter):
         abundance = abundance_new
         if iteration >= max_iter:
             converged = True
+    print(strftime("%Y-%m-%d %H:%M:%S | ") + "Post-processing after convergence")
+    if converged:
+        # assign reads in units of 1 (instead of fragments)
+        for qname in assignment.keys():
+            alpha = assignment[qname]
+            max_l = -math.inf
+            for tname in alpha.keys():
+                if alpha[tname] > max_l:
+                    max_l = alpha[tname]
+                    best_match = tname
+            for tname in alpha.keys():
+                if tname == best_match:
+                    assignment[qname][tname] = 1
+                else:
+                    assignment[qname][tname] = 0
+        # update abundances based on above read assignment
+        rho = dict()
+        for tname in abundance.keys():
+            rho[tname] = 0
+        for qname in assignment.keys():
+            alpha = assignment[qname]
+            for tname in alpha.keys():
+                rho[tname] += alpha[tname]
+        z = sum(rho.values())
+        for tname in abundance.keys():
+            if rho[tname] != 0:
+                rho[tname] /= z
+        abundance = rho
 
 
 def has_converged(abundance_old, abundance_new, min_delta):
@@ -132,6 +159,7 @@ def main():
     parser.add_argument('-max-iter', '--max_iteration', type=int, help="maximum number of EM iterations", default=100)
     parser.add_argument('-o', '--output_dir', type=str, help="output directory", required=True)
     parser.add_argument('-op', '--output_prefix', type=str, help="output files prefix", default='quant')
+    parser.add_argument('-conf-cutoff', type=float, help="minimum confidence for assigning a read", default=0.5)
 
     args = parser.parse_args()
     rt = args.ref_gtf
@@ -165,6 +193,7 @@ def main():
     global assignment
     global abundance
 
+    print(strftime("%Y-%m-%d %H:%M:%S | ") + "Writing output files.")
     utils.write_results(out_dir, out_prefix, assignment, abundance, tot_mapped)
 
 
