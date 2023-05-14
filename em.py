@@ -40,7 +40,7 @@ def step_m():
     return rho
 
 
-def iter_em(min_delta, max_iter):
+def iter_em(min_delta, max_iter, conf_co):
     converged = False
     iteration = 0
     global abundance
@@ -69,7 +69,7 @@ def iter_em(min_delta, max_iter):
                     max_l = alpha[tname]
                     best_match = tname
             for tname in alpha.keys():
-                if tname == best_match:
+                if tname == best_match and max_l > conf_co:
                     assignment[qname][tname] = 1
                 else:
                     assignment[qname][tname] = 0
@@ -168,6 +168,7 @@ def main():
     out_dir = args.output_dir
     out_prefix = args.output_prefix
     max_iter = args.max_iteration
+    conf_co = args.conf_cutoff
 
     print("\n-----------------------")
     print("Run Parameters")
@@ -178,6 +179,7 @@ def main():
     print("maximum iteration: " + str(max_iter))
     print("output directory: " + out_dir)
     print("output prefix: " + out_prefix)
+    print("confidence cut-off: " + str(conf_co))
     print("-----------------------\n")
 
     extract_transcripts(rt)
@@ -188,7 +190,7 @@ def main():
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Loading query alignment file")
     tot_mapped = assign_compatibility(in_aln)
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Finished loading. Beginning EM.")
-    iter_em(min_delta, max_iter)
+    iter_em(min_delta, max_iter, conf_co)
 
     global assignment
     global abundance
