@@ -28,7 +28,7 @@ def main():
     parser.add_argument('-t', '--threads', type=int, help="number of threads used in alignment", default=1, nargs='?',
                         const=1)
     args = parser.parse_args()
-    in_fasta = args.input_fasta
+    in_fasta = args.input_fastq
     rt = args.ref_fasta
     threads = args.threads
     odir = args.output_dir
