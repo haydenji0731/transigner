@@ -59,7 +59,7 @@ def get_score_dist(out_fh, out_raw_fh):
             continue
         if len(sec_l) > 0:
             for sec in sec_l:
-                sec_frac = (sec - pri_score) / pri_score
+                sec_frac = (sec - pri_score) / abs(pri_score)
                 sec_frac_l.append(sec_frac)
             sec_min = min(sec_frac_l)
             sec_max = max(sec_frac_l)
