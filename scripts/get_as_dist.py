@@ -24,20 +24,22 @@ def load_aln(aln_fn):
                 if qname_prev != qname_curr:
                     if qname_prev != "":
                         if len(secondary_l) == 0:
+                            # TODO: fix this counter
                             unique += 1
                         secondary[qname_prev] = secondary_l
                     secondary_l = list()
                     score = int(brec.get_tag("AS"))
-                    if not brec.is_secondary:
+                    if not brec.is_secondary and not brec.is_supplementary:
                         primary[qname_curr] = score
-                    else:
+                    elif brec.is_secondary:
                         secondary_l.append(score)
                     qname_prev = qname_curr
                 else:
                     score = int(brec.get_tag("AS"))
-                    if not brec.is_secondary:
+                    # TODO: what do we do with supplementary alignments?
+                    if not brec.is_secondary and not brec.is_supplementary:
                         primary[qname_curr] = score
-                    else:
+                    elif brec.is_secondary:
                         secondary_l.append(score)
     if len(secondary_l) == 0:
         unique += 1
@@ -48,7 +50,13 @@ def load_aln(aln_fn):
 def get_score_dist(out_fh, out_raw_fh):
     global primary
     global secondary
+    pri_zero = 0
+    sec_eq = 0
+    sec_gt = 0
+    sec_lt = 0
+    unique = 0
     for qname in primary.keys():
+        status = None
         pri_score = primary[qname]
         sec_l = secondary[qname]
         sec_l.sort()
@@ -56,10 +64,18 @@ def get_score_dist(out_fh, out_raw_fh):
         sec_frac_l = list()
         if pri_score == 0:
             print("primary alignment score equals 0; skipping read: " + qname)
+            pri_zero += 1
             continue
         if len(sec_l) > 0:
             for sec in sec_l:
                 sec_frac = (sec - pri_score) / abs(pri_score)
+                if status is None:
+                    if sec_frac == 0:
+                        status = "eq"
+                    elif sec_frac > 0:
+                        status = "gt"
+                    else:
+                        status = "lt"
                 sec_frac_l.append(sec_frac)
             sec_min = min(sec_frac_l)
             sec_max = max(sec_frac_l)
@@ -67,11 +83,26 @@ def get_score_dist(out_fh, out_raw_fh):
             out_fh.write(qname + "\t" + str(pri_score) + "\t" + str(sec_min) + "\t" + str(sec_max)
                          + "\t" + str(sec_mean) + "\t(")
             for frac in sec_frac_l:
+                if frac == 121.2:
+                    print("max: " + qname)
+                if frac == -14.25:
+                    print("min: " + qname)
                 out_fh.write(str(frac) + ",")
-                # if frac == -1566:
-                #     print("hello")
                 out_raw_fh.write(str(frac) + "\n")
             out_fh.write(")\n")
+        if status == "eq":
+            sec_eq += 1
+        elif status == "gt":
+            sec_gt += 1
+        elif status == "lt":
+            sec_lt += 1
+        else:
+            unique += 1
+    print("# of reads with secondary scores equal to primary: " + str(sec_eq))
+    print("# of reads with secondary scores greater than primary: " + str(sec_gt))
+    print("# of reads with secondary scores less than primary: " + str(sec_lt))
+    print("# of reads with 0 primary score: " + str(pri_zero))
+    print("# of unique: " + str(unique))
 
 
 def main(aln_fn, out_fn, out_raw_fn):
