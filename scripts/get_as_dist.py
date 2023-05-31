@@ -15,6 +15,7 @@ def load_aln(aln_fn):
     global primary
     global secondary
     qname_prev = ""
+    secondary_l = list()
     with pysam.AlignmentFile(aln_fn, 'rb') as fh:
         for brec in fh:
             if brec.is_unmapped:
@@ -22,28 +23,31 @@ def load_aln(aln_fn):
             else:
                 qname_curr = brec.query_name
                 if qname_prev != qname_curr:
+                    # if not 1st read
                     if qname_prev != "":
-                        if len(secondary_l) == 0:
-                            # TODO: fix this counter
-                            unique += 1
                         secondary[qname_prev] = secondary_l
-                    secondary_l = list()
-                    score = int(brec.get_tag("AS"))
-                    if not brec.is_secondary and not brec.is_supplementary:
-                        primary[qname_curr] = score
-                    elif brec.is_secondary:
-                        secondary_l.append(score)
+                        if len(secondary_l) == 0:
+                            unique += 1
+                        secondary_l = list()
                     qname_prev = qname_curr
-                else:
-                    score = int(brec.get_tag("AS"))
-                    # TODO: what do we do with supplementary alignments?
-                    if not brec.is_secondary and not brec.is_supplementary:
-                        primary[qname_curr] = score
-                    elif brec.is_secondary:
-                        secondary_l.append(score)
+                # chain_score = int(brec.get_tag("s1"))
+                # num of mismatches + gaps
+                # nm_score = int(brec.get_tag("NM"))
+                # max scoring segment
+                ms_score = int(brec.get_tag("ms"))
+                if not brec.is_secondary and not brec.is_supplementary:
+                    primary[qname_curr] = ms_score
+                elif brec.is_secondary:
+                    secondary_l.append(ms_score)
     if len(secondary_l) == 0:
         unique += 1
     secondary[qname_prev] = secondary_l
+    # for sanity check (what tag is used to determine primary alignment?)
+    for read in primary.keys():
+        pri_score = primary[read]
+        for sa in secondary[read]:
+            if pri_score < sa:
+                print("anomaly detected using ms score")
     return unmapped, unique
 
 
