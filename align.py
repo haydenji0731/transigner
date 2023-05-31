@@ -5,7 +5,7 @@ from subprocess import call
 from time import strftime
 
 
-def align(in_fasta, rt, threads, op, odir):
+def align(in_fastq, rt, threads, op, odir):
     # align as if genomic reads
     minimap_cmd = "minimap2 -ax map-ont -t " + str(threads) + " " + rt + " " + in_fasta + \
                   " | samtools sort -o " + odir + "/" + op + ".bam"
@@ -28,13 +28,13 @@ def main():
     parser.add_argument('-t', '--threads', type=int, help="number of threads used in alignment", default=1, nargs='?',
                         const=1)
     args = parser.parse_args()
-    in_fasta = args.input_fasta
+    in_fastq = args.input_fastq
     rt = args.ref_fasta
     threads = args.threads
     odir = args.output_dir
     op = args.output_prefix
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Starting alignment to the reference transcriptome using minimap2")
-    align(in_fasta, rt, threads, op, odir)
+    align(in_fastq, rt, threads, op, odir)
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Alignment completed.")
 
 
