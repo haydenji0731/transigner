@@ -7,9 +7,9 @@ from time import strftime
 g2t_d = dict()
 
 
-def align(in_fasta, rt, threads, op, odir, sec_num):
+def align(in_fastq, rt, threads, op, odir, sec_num):
     # align as if genomic reads
-    minimap_cmd = "minimap2 -ax map-ont -N " + str(sec_num) + " -t " + str(threads) + " " + rt + " " + in_fasta + \
+    minimap_cmd = "minimap2 -ax map-ont -N " + str(sec_num) + " -t " + str(threads) + " " + rt + " " + in_fastq + \
                   " | samtools sort -o " + odir + "/" + op + ".bam"
     print(minimap_cmd)
     call(minimap_cmd, shell=True)
@@ -63,7 +63,7 @@ def main():
     parser.add_argument('-t', '--threads', type=int, help="number of threads used in alignment", default=1,
                         required=False)
     args = parser.parse_args()
-    in_fasta = args.input_fastq
+    in_fastq = args.input_fastq
     rt = args.ref_fasta
     threads = args.threads
     odir = args.output_dir
@@ -78,7 +78,7 @@ def main():
     else:
         sec_num = args.secondary_num
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Starting alignment to the reference transcriptome using minimap2")
-    align(in_fasta, rt, threads, op, odir, sec_num)
+    align(in_fastq, rt, threads, op, odir, sec_num)
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Alignment completed.")
 
 
