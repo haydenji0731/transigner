@@ -4,11 +4,13 @@ import sys
 import pyfastx
 
 tx_d = dict()
+duplicates = set()
 
 
 def load_annot(gtf_fn):
     gtf_fh = open(gtf_fn, 'r')
     global tx_d
+    global duplicates
     for line in gtf_fh:
         if line[0] == '#':
             continue
@@ -25,6 +27,7 @@ def load_annot(gtf_fn):
                     tx_id = val.split(".")[0]
                     if tx_id in tx_d.keys():
                         print("Warning! duplicate transcript_id: " + tx_id)
+                        duplicates.add(tx_id)
                     tx_d[tx_id] = 0
                     break
     gtf_fh.close()
@@ -32,6 +35,7 @@ def load_annot(gtf_fn):
 
 def trace_reads(read_fn):
     global tx_d
+    global duplicates
     fq = pyfastx.Fastx(read_fn)
     for name, seq, _ in fq:
         splits = name.split("_")
