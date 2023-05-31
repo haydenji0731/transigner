@@ -20,13 +20,14 @@ def main(gtf_fn, out_fn):
         for i in range(len(fields)):
             if i == 8:
                 for info in infos:
+                    if info == ' \n':
+                        out_fh.write(info)
+                        continue
                     clean_info = info.strip()
                     kv_pair = clean_info.split(" ")
                     key = kv_pair[0]
                     if key == "transcript_id":
                         out_fh.write(" transcript_id " + '"' + tx_id + '";')
-                    elif info == ' \n':
-                        out_fh.write(info)
                     else:
                         out_fh.write(info + ";")
             else:
