@@ -72,6 +72,7 @@ def get_score_dist(out_fh, out_raw_fh):
             continue
         if len(sec_l) > 0:
             for sec in sec_l:
+                s2p_ratio = sec / pri_score
                 sec_frac = (sec - pri_score) / abs(pri_score)
                 if status is None:
                     if sec_frac == 0:
