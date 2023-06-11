@@ -61,7 +61,7 @@ def get_tx_per_gene(ref_gtf):
         if max_tpg < num_tx:
             max_gid = gene
         max_tpg = max(max_tpg, num_tx)
-    return max_tpg
+    return max_gid, max_tpg
 
 
 def main():
@@ -87,8 +87,9 @@ def main():
     if args.ref_gtf != "":
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Reference annotation was provided. Extracting the maximum number of "
                                                  "transcripts per gene locus.")
-        tpg = get_tx_per_gene(args.ref_gtf)
+        gid, tpg = get_tx_per_gene(args.ref_gtf)
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Maximum number of transcripts per gene locus: " + str(tpg))
+        print(strftime("%Y-%m-%d %H:%M:%S | ") + "The corresponding gene locus: " + gid)
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Maximum number of secondary alignments will be ignored.")
         # TODO: try adding some padding
         # sec_num = tpg + 50
