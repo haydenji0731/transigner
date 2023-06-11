@@ -27,19 +27,35 @@ def get_tx_per_gene(ref_gtf):
             continue
         fields = line.split("\t")
         feature = fields[2]
-        if feature == "gene":
+        if feature == "transcript":
             infos = fields[8].split(';')
             for info in infos:
+                if info == '\n':
+                    break
                 info_clean = info.strip()
                 kv_pair = info_clean.split(" ")
                 key = kv_pair[0]
                 val = kv_pair[1].replace('"', '')
-                if key == "gene_id":
+                if key == "ref_gene_id":
                     gid = val
-                    g2t_d[gid] = 0
+                    if gid not in g2t_d.keys():
+                        g2t_d[gid] = 0
+                    g2t_d[gid] += 1
                     break
-        elif feature == "transcript":
-            g2t_d[gid] += 1
+
+        # if feature == "gene":
+        #     infos = fields[8].split(';')
+        #     for info in infos:
+        #         info_clean = info.strip()
+        #         kv_pair = info_clean.split(" ")
+        #         key = kv_pair[0]
+        #         val = kv_pair[1].replace('"', '')
+        #         if key == "ref_gene_id":
+        #             gid = val
+        #             g2t_d[gid] = 0
+        #             break
+        # elif feature == "transcript":
+        #     g2t_d[gid] += 1
     for gene in g2t_d.keys():
         num_tx = g2t_d[gene]
         if max_tpg < num_tx:
@@ -74,6 +90,8 @@ def main():
         tpg = get_tx_per_gene(args.ref_gtf)
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Maximum number of transcripts per gene locus: " + str(tpg))
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Maximum number of secondary alignments will be ignored.")
+        # TODO: try adding some padding
+        # sec_num = tpg + 50
         sec_num = tpg
     else:
         sec_num = args.secondary_num
