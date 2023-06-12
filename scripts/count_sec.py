@@ -41,6 +41,11 @@ def compare(d1, d2):
             print("WARNING: a mismatch in query set detected")
         if d1_val != d2_val:
             identical = False
+            print(query)
+            if d1_val < d2_val:
+                print("alignment #1 is smaller")
+            else:
+                print("alignment #2 is smaller")
             break
     return identical
 
