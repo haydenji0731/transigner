@@ -76,6 +76,7 @@ def main():
                         required=False)
     parser.add_argument('-sN', '--secondary_num', type=int, help="maximum number of secondary alignments", default=10,
                         required=False)
+    parser.add_argument('-pad', '--padding', type=int, help="", default=0, required=False)
     parser.add_argument('-t', '--threads', type=int, help="number of threads used in alignment", default=1,
                         required=False)
     args = parser.parse_args()
@@ -91,9 +92,7 @@ def main():
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Maximum number of transcripts per gene locus: " + str(tpg))
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "The corresponding gene locus: " + gid)
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Maximum number of secondary alignments will be ignored.")
-        # TODO: try adding some padding
-        # sec_num = tpg + 50
-        sec_num = tpg
+        sec_num = tpg + args.padding
     else:
         sec_num = args.secondary_num
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Starting alignment to the reference transcriptome using minimap2")
