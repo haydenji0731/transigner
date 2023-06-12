@@ -92,8 +92,8 @@ def main():
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "The corresponding gene locus: " + gid)
         print(strftime("%Y-%m-%d %H:%M:%S | ") + "Maximum number of secondary alignments will be ignored.")
         # TODO: try adding some padding
-        # sec_num = tpg + 50
-        sec_num = tpg
+        sec_num = tpg + 100
+        #sec_num = tpg
     else:
         sec_num = args.secondary_num
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Starting alignment to the reference transcriptome using minimap2")
