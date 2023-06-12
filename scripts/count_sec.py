@@ -52,7 +52,7 @@ def main(aln_fn_1, aln_fn_2):
     aln_d_2 = count(aln_fn_2)
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Comparing 2 alignment files")
     is_identical = compare(aln_d_1, aln_d_2)
-    print("These 2 alignment files have same # of secondary alignments: " + is_identical)
+    print("These 2 alignment files have same # of secondary alignments: " + str(is_identical))
     print(strftime("%Y-%m-%d %H:%M:%S | ") + "Run completed")
 
 
