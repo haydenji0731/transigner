@@ -30,8 +30,6 @@ def count(aln_fn):
 
 
 def compare(d1, d2):
-    print(len(d1.keys()))
-    print(len(d2.keys()))
     identical = True
     for query in d1.keys():
         d1_val = d1[query]
