@@ -43,7 +43,7 @@ def get_gt(gtf_fn, out_prefix):
                 if code == '=':
                     if ref_id in ref2tx.keys():
                         print("duplicate detected")
-                        print(ref_id + "\t" + ref2tx[ref_id] + "\n")
+                        print(ref_id + "\t" + list(ref2tx[ref_id])[0] + "\n")
                         print(ref_id + "\t" + tx_id + "\n")
                         dup.add(ref_id)
                         ref2tx[ref_id].add(tx_id)
