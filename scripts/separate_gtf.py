@@ -84,6 +84,7 @@ def filter_gtf(gtf_fn, out_prefix, tx_set, gene_set):
                         removed_fh.write(line)
                     else:
                         kept_fh.write(line)
+                    break
     gtf_fh.close()
     removed_fh.close()
     kept_fh.close()
@@ -99,5 +100,5 @@ def main(gtf_fn, reads_fn, out_prefix, with_genes):
 
 
 if __name__ == "__main__":
-    # gtf_fn, reads_fn, out_prefix, chrom, with_genes
+    # gtf_fn, reads_fn, out_prefix, with_genes
     main(sys.argv[1], sys.argv[2], sys.argv[3], bool(sys.argv[4]))
