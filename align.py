@@ -42,20 +42,6 @@ def get_tx_per_gene(ref_gtf):
                         g2t_d[gid] = 0
                     g2t_d[gid] += 1
                     break
-
-        # if feature == "gene":
-        #     infos = fields[8].split(';')
-        #     for info in infos:
-        #         info_clean = info.strip()
-        #         kv_pair = info_clean.split(" ")
-        #         key = kv_pair[0]
-        #         val = kv_pair[1].replace('"', '')
-        #         if key == "ref_gene_id":
-        #             gid = val
-        #             g2t_d[gid] = 0
-        #             break
-        # elif feature == "transcript":
-        #     g2t_d[gid] += 1
     for gene in g2t_d.keys():
         num_tx = g2t_d[gene]
         if max_tpg < num_tx:
@@ -65,7 +51,6 @@ def get_tx_per_gene(ref_gtf):
 
 
 def main():
-    
     parser = argparse.ArgumentParser(description="align reads to the transcriptome")
     parser.add_argument('-i', '--input_fastq', type=str, help="input fastq file containing reads", required=True)
     parser.add_argument('-ref-fa', '--ref_fasta', type=str, help="reference transcriptome fasta to align to",
@@ -74,7 +59,7 @@ def main():
     parser.add_argument('-o', '--output_dir', type=str, help="alignment output directory", required=True)
     parser.add_argument('-op', '--output_prefix', type=str, help="output alignment file prefix", default='aln',
                         required=False)
-    parser.add_argument('-sN', '--secondary_num', type=int, help="maximum number of secondary alignments", default=10,
+    parser.add_argument('-sN', '--secondary_num', type=int, help="maximum number of secondary alignments", default=181,
                         required=False)
     parser.add_argument('-pad', '--padding', type=int, help="", default=0, required=False)
     parser.add_argument('-t', '--threads', type=int, help="number of threads used in alignment", default=1,
