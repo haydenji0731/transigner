@@ -74,7 +74,7 @@ Next, run the following command to start the `prefilter` module:
 ```
 $ python ./prefilter.py -query reads.fastq -target assembled_txs.fasta -aln ${aln_output_dir}/aln.bam -gtf assembled_txs.gtf -t num_threads -tmp ${pref_output_dir}/tmp -o pref_output_dir --score-ratio 0.99 0.01 
 ```
-For safety, I recommend that you separate each module's output into separate directory (i.e., align module's output directory != prefilter module's output directory). Additionally, `--score-ratio` indicates how much weight is assigned to minimap vs. jf_aligner. I recommend that 99% of the weight goes to the minimap output and 1% goes to jf_aligner. This achieves a small increase in our read assignment performance. 
+For safety, I recommend that you separate each module's output into separate directory (i.e., align module's output directory != prefilter module's output directory). Additionally, `--score-ratio` indicates how much weight is assigned to minimap vs. jf_aligner. I recommend that 99% of the weight goes to the minimap output and 1% goes to jf_aligner. This achieves a small increase in our read assignment performance. Also, you can use `--pos` optional argument to specify how lenient you want to be with the distance between the 5' end of a transcript and mapping start position of a read, when filtering out non-primary (i.e., secondary, supplementary alignment). By default, I allow for upto 150bp difference between the primary alignment in the 3' direction. 
 
 `--load` optional argument should allow you to resume your run if your prefiltering step gets terminated. I haven't tested out this feature so let me know if you need assistance on this.
 
