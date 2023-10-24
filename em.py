@@ -1,203 +1,187 @@
 #!/usr/bin/env python
 
+from prefilter import load_cmpt_tbl, load_score_tbl
+import pickle
 import argparse
-import pysam
+from tqdm import tqdm
 import os
-from time import strftime
-import utils
-import math
-
-assignment = dict()
-abundance = dict()
 
 
-def step_e():
-    global assignment
-    for qname in assignment.keys():
-        alpha = assignment[qname]  # dict() obj
-        z = sum(alpha.values())
-        for tname in alpha.keys():
-            assignment[qname][tname] /= z
+def step_e(assignment, abundance, score_tbl, cmpt_tbl, reads_lst, use_score):
+    reads_num = len(reads_lst)
+    for i in tqdm(range(reads_num)):
+        tmp = dict()
+        ti_set = cmpt_tbl[i]
+        for ti in ti_set:
+            score = score_tbl[i][ti]
+            rho = abundance[ti]
+            if use_score:
+                tmp[ti] = score * rho
+            else:
+                tmp[ti] = rho
+        z = sum(tmp.values())
+        if z == 0:
+            print(reads_lst[i])
+        for ti in ti_set:
+            assignment[i][ti] = tmp[ti] / z
 
 
-def step_m():
-    global abundance
-    global assignment
-    rho = dict()
-    for tname in abundance.keys():
-        rho[tname] = 0
-    for qname in assignment.keys():
-        alpha = assignment[qname]  # dict() object
-        for tname in alpha.keys():
-            rho[tname] += alpha[tname]
-    z = sum(rho.values())
-    # print("(sanity check) total number of assigned reads: %d" % z)
-    for tname in abundance.keys():
-        if rho[tname] != 0:
-            rho[tname] /= z
-    # rho_sum = sum(rho.values())
-    # print("(sanity check) sum of all rhos: %f" % rho_sum)
-    return rho
+def step_m(assignment, cmpt_tbl, reads_lst, glob_ti_set):
+    updated_abundance = dict()
+    for ti in glob_ti_set:
+        updated_abundance[ti] = 0
+
+    reads_num = len(reads_lst)
+    for i in tqdm(range(reads_num)):
+        ti_set = cmpt_tbl[i]
+        for ti in ti_set:
+            alpha = assignment[i][ti]
+            updated_abundance[ti] += alpha
+
+    for ti in glob_ti_set:
+        # reads_num = total # of aligned reads
+        updated_abundance[ti] /= reads_num
+    return updated_abundance
 
 
-def iter_em(min_delta, max_iter, conf_co):
+def has_converged(old_abundance, new_abundance, thres, glob_ti_set):
+    delt = 0
     converged = False
-    iteration = 0
-    global abundance
-    global assignment
-    while not converged:
-        iteration += 1
-        print(strftime("%Y-%m-%d %H:%M:%S | ") + "EM iteration #%d:" % iteration)
-        for qname in assignment.keys():
-            alpha = assignment[qname]
-            for tname in alpha.keys():
-                assignment[qname][tname] = abundance[tname]
-        step_e()
-        abundance_new = step_m()
-        converged = has_converged(abundance, abundance_new, min_delta)
-        abundance = abundance_new
-        if iteration >= max_iter:
-            converged = True
-    print(strftime("%Y-%m-%d %H:%M:%S | ") + "Post-processing after convergence")
-    if converged:
-        # assign reads in units of 1 (instead of fragments)
-        for qname in assignment.keys():
-            alpha = assignment[qname]
-            max_l = -math.inf
-            for tname in alpha.keys():
-                if alpha[tname] > max_l:
-                    max_l = alpha[tname]
-                    best_match = tname
-            for tname in alpha.keys():
-                if tname == best_match and max_l > conf_co:
-                    assignment[qname][tname] = 1
-                else:
-                    assignment[qname][tname] = 0
-        # update abundances based on above read assignment
-        rho = dict()
-        for tname in abundance.keys():
-            rho[tname] = 0
-        for qname in assignment.keys():
-            alpha = assignment[qname]
-            for tname in alpha.keys():
-                rho[tname] += alpha[tname]
-        z = sum(rho.values())
-        for tname in abundance.keys():
-            if rho[tname] != 0:
-                rho[tname] /= z
-        abundance = rho
+    for ti in glob_ti_set:
+        delt += abs(old_abundance[ti] - new_abundance[ti])
+    if delt < thres:
+        converged = True
+    return delt, converged
 
 
-def has_converged(abundance_old, abundance_new, min_delta):
-    max_delta = -math.inf
-    for tname in abundance_old.keys():
-        delta = abs(abundance_new[tname] - abundance_old[tname])
-        max_delta = max(max_delta, delta)
-    max_delta *= 1000000
-    print(strftime("%Y-%m-%d %H:%M:%S | ") + "delta: %.10f" % max_delta)
-    if max_delta < min_delta:
-        print(strftime("%Y-%m-%d %H:%M:%S | ") + "Convergence condition satisfied")
-        return True
-    return False
-
-
-def extract_transcripts(rt):
-    global abundance
-    fh = open(rt, 'r')
-    tot = 0
-    for line in fh:
-        if line[0] == "#":
-            continue
-        if line.split("\t")[2] == "transcript":
-            tot += 1
-            fields = line.split("\t")[8].split(";")
-            for field in fields:
-                k = field.strip().split(" ")[0]
-                v = field.strip().split(" ")[1].replace('"', '')
-                if k == "transcript_id":
-                    abundance[v] = 0
-                    break
-    for tname in abundance.keys():
-        abundance[tname] = 1 / tot
-
-
-def assign_compatibility(in_aln):
-    global assignment
-    unmapped = 0
-    qnames = set()
-    with pysam.AlignmentFile(in_aln, 'rb') as fh:
-        for brec in fh:
-            if brec.is_unmapped:
-                unmapped += 1
-                continue
-            else:
-                qname = brec.query_name
-                qnames.add(qname)
-    mapped = len(qnames)
-    for name in qnames:
-        assignment[name] = dict()
-    with pysam.AlignmentFile(in_aln, 'rb') as fh:
-        for brec in fh:
-            if brec.is_unmapped:
-                continue
-            else:
-                qname = brec.query_name
-                tname = brec.reference_name
-                assignment[qname][tname] = 0
-    tot = unmapped + mapped
-    print("Loaded total %d reads of which %d are mapped / %d are unmapped" % (tot, mapped, unmapped))
-    return mapped
+def drop_scores(score_tbl, assignment, reads_lst):
+    reads_num = len(reads_lst)
+    for i in tqdm(range(reads_num)):
+        score_d = score_tbl[i]
+        # TODO: did this fix?
+        cmpt_num = sum(1 for j in score_d.values() if j != 0)
+        thres = 1 / cmpt_num
+        for ti in score_d:
+            read_frac = assignment[i][ti] + 0.0000000000000001
+            if read_frac < thres:
+                score_tbl[i][ti] = 0
 
 
 def main():
-    parser = argparse.ArgumentParser(description="run EM algorithm to (1) quantify transcript abundance and (2) "
-                                                 "estimate read membership likelihoods")
-    parser.add_argument('-i', '--input_aln', type=str, help="input alignment file", required=True)
-    parser.add_argument('-ref-gtf', '--ref_gtf', type=str, help="reference transcriptome annotation to match against",
-                        required=True)
-    parser.add_argument('-thres', '--threshold', type=float, help="min TPM change for stopping EM", default=10)
-    parser.add_argument('-max-iter', '--max_iteration', type=int, help="maximum number of EM iterations", default=100)
-    parser.add_argument('-o', '--output_dir', type=str, help="output directory", required=True)
-    parser.add_argument('-op', '--output_prefix', type=str, help="output files prefix", default='quant')
-    parser.add_argument('-conf-cutoff', type=float, help="minimum confidence for assigning a read", default=0.5)
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument('-cmpt', '--cmpt-tsv', type=str, help="", required=True)
+    parser.add_argument('-scores', '--scores-tsv', type=str, help="", required=True)
+    parser.add_argument('-i', '--index', type=str, help="", required=True)
+    parser.add_argument('-thres', type=float, help="minimum cumulative rho change", required=False, default=0.005)
+    parser.add_argument('-max-iter', type=int, help="maximum number of EM iterations", required=False, default=100)
+    parser.add_argument('-o', '--out_dir', type=str, help="", required=True)
+    parser.add_argument('--use-score', default=False, help="", required=False, action='store_true')
+    parser.add_argument('--drop', default=False, help="", required=False, action='store_true')
+    parser.add_argument('-l', '--len', type=int, help="", required=True)
 
     args = parser.parse_args()
-    rt = args.ref_gtf
-    in_aln = args.input_aln
-    min_delta = args.threshold
-    out_dir = args.output_dir
-    out_prefix = args.output_prefix
-    max_iter = args.max_iteration
-    conf_co = args.conf_cutoff
 
-    print("\n-----------------------")
-    print("Run Parameters")
-    print("-----------------------")
-    print("reference gtf: " + rt)
-    print("input bam: " + in_aln)
-    print("minimum TPM change: " + str(min_delta))
-    print("maximum iteration: " + str(max_iter))
-    print("output directory: " + out_dir)
-    print("output prefix: " + out_prefix)
-    print("confidence cut-off: " + str(conf_co))
-    print("-----------------------\n")
+    print("loading transcriptome index")
+    with open(args.index, "rb") as f:
+        tx_tbl = pickle.load(f)
+    tmp_lst = list()
+    for tname in tx_tbl:
+        tmp_lst.append((tname, tx_tbl[tname]))
+    sorted_tmp_lst = sorted(tmp_lst, key=lambda x: x[1])
+    tx_lst = [x for (x, i) in sorted_tmp_lst]
 
-    extract_transcripts(rt)
+    print("loading compatibility matrix")
+    cmpt_tbl, reads_lst = load_cmpt_tbl(args.cmpt_tsv, args.len, tx_tbl)
 
-    if not os.path.exists(in_aln + ".bai"):
-        pysam.index(in_aln)
+    print("loading score matrix")
+    score_tbl, reads_lst_2 = load_score_tbl(args.scores_tsv, args.len, tx_tbl)
 
-    print(strftime("%Y-%m-%d %H:%M:%S | ") + "Loading query alignment file")
-    tot_mapped = assign_compatibility(in_aln)
-    print(strftime("%Y-%m-%d %H:%M:%S | ") + "Finished loading. Beginning EM.")
-    iter_em(min_delta, max_iter, conf_co)
+    # sanity check
+    assert len(reads_lst) == len(reads_lst_2)
 
-    global assignment
-    global abundance
+    print("initializing...")
+    abundance = dict()
+    assignment = [dict() for _ in reads_lst]
+    reads_num = len(reads_lst)
+    glob_ti_set = set()
+    for i in tqdm(range(reads_num)):
+        ti_set = cmpt_tbl[i]
+        for ti in ti_set:
+            glob_ti_set.add(ti)
+    glob_ti_num = len(glob_ti_set)
+    for ti in glob_ti_set:
+        abundance[ti] = 1 / glob_ti_num
 
-    print(strftime("%Y-%m-%d %H:%M:%S | ") + "Writing output files.")
-    utils.write_results(out_dir, out_prefix, assignment, abundance, tot_mapped)
+    num_iter = 1
+    print("starting EM...")
+    rho_conv = False
+    while num_iter <= args.max_iter:
+        print("Iteration #: " + str(num_iter))
+        print("E step\n-------------------------------")
+        step_e(assignment, abundance, score_tbl, cmpt_tbl, reads_lst, args.use_score)
+        if args.drop and num_iter == 1:
+            print("Dropping some low-compatibility Txs...")
+            drop_scores(score_tbl, assignment, reads_lst)
+            step_e(assignment, abundance, score_tbl, cmpt_tbl, reads_lst, args.use_score)
+        print("M step\n-------------------------------")
+        new_abundance = step_m(assignment, cmpt_tbl, reads_lst, glob_ti_set)
+        delta, converged = has_converged(abundance, new_abundance, args.thres, glob_ti_set)
+        print("Rho Delta: " + str(delta))
+        abundance = new_abundance
+        if converged:
+            print("Converged w.r.t. minimum cumulative rho delta criteria")
+            rho_conv = True
+            break
+        num_iter += 1
+    if not rho_conv:
+        print("Converged w.r.t. maximum # of iterations criteria")
+
+    print("writing out relative abundances")
+    abundance_fn = os.path.join(args.out_dir, "abundances.tsv")
+    abundance_fh = open(abundance_fn, 'w')
+    for ti in tqdm(glob_ti_set):
+        tname = tx_lst[ti]
+        rho = abundance[ti]
+        cnt = rho * reads_num
+        abundance_fh.write(tname + "\t" + str(rho) + "\t" + str(cnt) + "\n")
+    abundance_fh.close()
+
+    print("writing out read-to-tx assignments")
+    assignment_fn = os.path.join(args.out_dir, "assignments.tsv")
+    assignment_fh = open(assignment_fn, 'w')
+    max_fn = os.path.join(args.out_dir, "max_assignments.tsv")
+    max_fh = open(max_fn, 'w')
+    for i in tqdm(range(reads_num)):
+        qname = reads_lst[i]
+        ti_set = cmpt_tbl[i]
+        assignment_fh.write(qname)
+        max_fh.write(qname)
+        tmp_lst = list()
+        for ti in ti_set:
+            tname = tx_lst[ti]
+            alpha = assignment[i][ti]
+            tmp_lst.append((tname, alpha))
+            if alpha > 0:
+                assignment_fh.write("\t(" + tname + ", " + str(alpha) + ")")
+        sorted_tmp_lst = sorted(tmp_lst, key=lambda x: x[1], reverse=True)
+        max_tname, max_alpha = sorted_tmp_lst[0]
+        max_fh.write("\t(" + max_tname + ", " + str(max_alpha) + ")\n")
+        assignment_fh.write("\n")
+    assignment_fh.close()
 
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
