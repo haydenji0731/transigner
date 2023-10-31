@@ -8,7 +8,7 @@ import pyfastx
 import os
 import pickle
 import sys
-from utils_dev import build_tbls_paf, build_score_tbl
+from utils import build_tbls_paf, build_score_tbl
 
 
 def load_cmpt_tbl(cmpt_fn, reads_num, tx_tbl):
@@ -49,7 +49,7 @@ def load_score_tbl(score_fn, reads_num, tx_tbl):
                 tname = field.split(",")[0].replace('(', '')
                 score = float(field.split(",")[1].strip().replace(')', ''))
                 ti = tx_tbl[tname]
-                score_tbl[i][ti] = score
+                score_tbl[ctr][ti] = score
     score_fh.close()
     return score_tbl, reads_lst
 
@@ -87,10 +87,20 @@ def subset_target(cmpt_tbl, tx_lst, reads_lst):
     return cmpt_tx_set
 
 
-def load_aln(aln_fn):
+def compute_tlen(target_fa):
+    tlen_tbl = dict()
+    for seq in tqdm(target_fa):
+        if seq.name in tlen_tbl:
+            print("how can this happen?")
+        tlen_tbl[seq.name] = len(seq)
+    return tlen_tbl
+
+
+def load_aln(aln_fn, tlen_tbl):
     reads_tbl = dict()
     primary_tbl = dict()
     primary_st_tbl = dict()
+    primary_en_tbl = dict()
     with pysam.AlignmentFile(aln_fn, 'rb') as fh:
         for brec in tqdm(fh):
             qname = brec.query_name
@@ -105,11 +115,15 @@ def load_aln(aln_fn):
                     score = int(brec.get_tag("ms"))
                     primary_tbl[qname] = (brec.reference_name, score)
                     primary_st_tbl[qname] = (brec.reference_name, brec.reference_start)
-    return reads_tbl, primary_tbl, primary_st_tbl
+                    # TODO: does this work? :0
+                    tlen = tlen_tbl[brec.reference_name]
+                    # record the distance from the 3' end
+                    primary_en_tbl[qname] = (brec.reference_name, tlen - brec.reference_end)
+    return reads_tbl, primary_tbl, primary_st_tbl, primary_en_tbl
 
 
-def build_cmpt_tbl_bam(reads_tbl, primary_tbl, primary_st_tbl, pos_thres, tx_tbl, reads_lst):
-    # TODO:
+def build_cmpt_tbl_bam(reads_tbl, primary_tbl, primary_st_tbl, primary_en_tbl, three_thres, five_thres,
+                       tx_tbl, tlen_tbl, reads_lst, filter_by_pos):
     reads_num = len(reads_tbl)
 
     cmpt_tbl = [set() for _ in range(reads_num)]
@@ -122,10 +136,17 @@ def build_cmpt_tbl_bam(reads_tbl, primary_tbl, primary_st_tbl, pos_thres, tx_tbl
 
             tname = brec.reference_name
 
-            pri_st_pos = primary_st_tbl[qname][1]
-            # skip if the 5' mapping position too far to the right of the primary
-            if (pri_st_pos - brec.reference_start) < pos_thres:
-                continue
+            if filter_by_pos:
+                pri_st_pos = primary_st_tbl[qname][1]
+                # skip if the 5' mapping position too far to the right of the primary
+                if (pri_st_pos - brec.reference_start) < five_thres:
+                    continue
+
+                pri_en_dist = primary_en_tbl[qname][1]
+                tlen = tlen_tbl[brec.reference_name]
+
+                if (pri_en_dist - (tlen - brec.reference_end)) < three_thres:
+                    continue
 
             t_idx = tx_tbl[tname]
             # add to the cmpt set for this read
@@ -150,17 +171,27 @@ def main():
     parser.add_argument('-aln', type=str, help="", required=True)
     parser.add_argument('-gtf', type=str, help="", required=True)
     parser.add_argument('-jf', '--jf-aligner', type=str, help="", required=False, default=None)
-    parser.add_argument('--align', type=bool, help="", required=False, default=False)
+    # TODO: test this parameter
+    parser.add_argument('--align', default=False, help="", required=False, action='store_true')
     parser.add_argument('-tmp', '--tmp-dir', type=str, help="", required=True)
     parser.add_argument('-t', '--threads', type=int, help="", required=False, default=1)
     parser.add_argument('-k', '--kmer-size', type=int, help="", required=False, default=20)
     parser.add_argument('-o', '--out-dir', type=str, help="", required=True)
-    parser.add_argument('--load', type=bool, help="", required=False, default=False)
+    parser.add_argument('--load', default=False, help="", required=False, action='store_true')
     parser.add_argument('-i', '--index-path', type=str, help="", required=False, default=None)
     parser.add_argument('--score-ratio', type=float, help="", required=True, nargs="+")
-    # TODO: implement 5prime and 3prime filters separately
-    parser.add_argument('--pos', type=float, help="", required=False, default=-150)
+    parser.add_argument('--five-prime', type=float, help="", required=False, default=-150)
+    parser.add_argument('--three-prime', type=float, help="", required=False, default=-50)
+    parser.add_argument('--filter', default=False, help="", required=False, action='store_true')
+
+    # parser.add_argument('--pos', type=float, help="", required=False, default=-150)
     args = parser.parse_args()
+
+    print("loading target transcriptome")
+    target_fa = pyfastx.Fasta(args.target_fasta)
+
+    print("extracting target transcript lengths")
+    tlen_tbl = compute_tlen(target_fa)
 
     # set up jf_aligner
     if args.jf_aligner is not None:
@@ -198,7 +229,7 @@ def main():
 
     else:
         print("loading alignment")
-        reads_tbl, primary_tbl, primary_st_tbl = load_aln(args.aln)
+        reads_tbl, primary_tbl, primary_st_tbl, primary_en_tbl = load_aln(args.aln, tlen_tbl)
         reads_lst = list(reads_tbl.keys())
         print("loading target transcriptome annotation")
         tx_lst = load_transcriptome(args.gtf)
@@ -214,8 +245,8 @@ def main():
             pickle.dump(tx_tbl, f)
 
         print("building compatibility matrix")
-        # TODO: save ratio_tbl into a tsv file
-        cmpt_tbl, ms_tbl = build_cmpt_tbl_bam(reads_tbl, primary_tbl, primary_st_tbl, args.pos, tx_tbl, reads_lst)
+        cmpt_tbl, ms_tbl = build_cmpt_tbl_bam(reads_tbl, primary_tbl, primary_st_tbl, primary_en_tbl, args.three_prime,
+                                              args.five_prime, tx_tbl, tlen_tbl, reads_lst, args.filter)
 
         print("writing out compatibility matrix")
         # print out the compatibility matrix (excluding ratios)
@@ -240,9 +271,6 @@ def main():
         mkdir_cmd = "mkdir " + args.tmp_dir
         call(mkdir_cmd, shell=True)
 
-        print("loading target transcriptome")
-        target_fa = pyfastx.Fasta(args.target_fasta)
-
         print("subsetting target transcriptome")
         cmpt_tx_set = subset_target(cmpt_tbl, tx_lst, reads_lst)
         subset_target_fn = os.path.join(args.tmp_dir, "cmpt_txs.fa")
@@ -257,7 +285,7 @@ def main():
                   str(len(cmpt_tx_set)) + " -m " + str(args.kmer_size) + " -H -q /dev/stdin -r " + subset_target_fn + \
                   " --coords " + aln_fn
         print(aln_cmd)
-        call(aln_cmd, shell=True)
+        #call(aln_cmd, shell=True)
 
         print("alignment completed; removing the tmp dir.")
         rm_cmd = "rm -rf " + args.tmp_dir

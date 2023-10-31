@@ -61,7 +61,6 @@ def main():
                         required=False)
     parser.add_argument('-sN', '--secondary_num', type=int, help="maximum number of secondary alignments", default=181,
                         required=False)
-    parser.add_argument('-pad', '--padding', type=int, help="", default=0, required=False)
     parser.add_argument('-t', '--threads', type=int, help="number of threads used in alignment", default=1,
                         required=False)
     args = parser.parse_args()
