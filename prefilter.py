@@ -142,6 +142,7 @@ def build_cmpt_tbl_bam(reads_tbl, primary_tbl, primary_st_tbl, primary_en_tbl, t
                 if (pri_st_pos - brec.reference_start) < five_thres:
                     continue
 
+                # TODO: remove this stub as well as other dependencies
                 pri_en_dist = primary_en_tbl[qname][1]
                 tlen = tlen_tbl[brec.reference_name]
 
@@ -180,8 +181,9 @@ def main():
     parser.add_argument('--load', default=False, help="", required=False, action='store_true')
     parser.add_argument('-i', '--index-path', type=str, help="", required=False, default=None)
     parser.add_argument('--score-ratio', type=float, help="", required=True, nargs="+")
+    # TODO: remove three-prime filter argument
     parser.add_argument('--five-prime', type=float, help="", required=False, default=-150)
-    parser.add_argument('--three-prime', type=float, help="", required=False, default=-50)
+    parser.add_argument('--three-prime', type=float, help="", required=False, default=-650)
     parser.add_argument('--filter', default=False, help="", required=False, action='store_true')
 
     # parser.add_argument('--pos', type=float, help="", required=False, default=-150)

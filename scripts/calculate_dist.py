@@ -29,7 +29,7 @@ def load_qry(fn):
         cnt = float(clean_ln.split("\t")[1])
         qry_cnt_tbl[tid] = cnt
         tot_cnt += cnt
-    print("total query count: " + str(tot_cnt))
+    # print("total query count: " + str(tot_cnt))
     return qry_cnt_tbl
 
 
@@ -56,8 +56,8 @@ def compute_loss(gt_cnt_tbl, qry_cnt_tbl, gt_id_set=None):
             e = qry_cnt_tbl[tid]
         tae += e
     mae = tae / len(gt_cnt_tbl)
-    print("number of ignored transcripts: " + str(ignored))
-    print("total count assigned to these ignored transcripts: " + str(ignored_cnt))
+    # print("number of ignored transcripts: " + str(ignored))
+    # print("total count assigned to these ignored transcripts: " + str(ignored_cnt))
     return tae, mae
 
 
