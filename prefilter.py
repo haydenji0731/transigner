@@ -143,12 +143,12 @@ def build_cmpt_tbl_bam(reads_tbl, primary_tbl, primary_st_tbl, primary_en_tbl, t
                 if (pri_st_pos - brec.reference_start) < five_thres:
                     continue
 
-                # TODO: remove this stub as well as other dependencies
-                #pri_en_dist = primary_en_tbl[qname][1]
-                #tlen = tlen_tbl[brec.reference_name]
+                if three_thres is not None:
+                    pri_en_dist = primary_en_tbl[qname][1]
+                    tlen = tlen_tbl[brec.reference_name]
 
-                #if (pri_en_dist - (tlen - brec.reference_end)) < three_thres:
-                #    continue
+                    if (pri_en_dist - (tlen - brec.reference_end)) < three_thres:
+                       continue
 
             t_idx = tx_tbl[tname]
             # add to the cmpt set for this read
@@ -225,7 +225,7 @@ def main():
     parser.add_argument('-i', '--index-path', type=str, help="", required=False, default=None)
     parser.add_argument('--score-ratio', type=float, help="", required=False, nargs="+")
     parser.add_argument('--five-prime', type=float, help="", required=False, default=-800)
-    parser.add_argument('--three-prime', type=float, help="", required=False, default=-150)
+    parser.add_argument('--three-prime', type=float, help="", required=False, default=None)
     parser.add_argument('--filter', default=False, help="", required=False, action='store_true')
     parser.add_argument('--decay', default=False, help="", required=False, action='store_true')
 
