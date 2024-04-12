@@ -6,7 +6,68 @@ import pickle
 import random
 import os
 from tqdm import tqdm
-from subset import Tx, Gene, load_gtf
+
+
+class Tx:
+    def __init__(self, tid, raw):
+        self.tid = tid
+        self.raw = raw
+        # list of exons and CDSs (as gtf lines)
+        self.children = list()
+
+    def add_child(self, obj):
+        self.children.append(obj)
+
+
+class Gene:
+    def __init__(self, gid, raw):
+        self.gid = gid
+        self.raw = raw
+        # list of Tx objs
+        self.children = list()
+
+    def add_child(self, tx):
+        self.children.append(tx)
+
+
+# load gtf file
+def load_gtf(fn):
+    fh = open(fn, 'r')
+    tx_tbl = dict()
+    for line in fh:
+        if line[0] == '#':
+            continue
+        clean_ln = line.strip()
+        fields = clean_ln.split("\t")
+        feature = fields[2]
+        infos = fields[8].split(";")
+        if feature == "transcript":
+            for info in infos:
+                clean_info = info.strip()
+                kv_pair = clean_info.split(" ")
+                if len(kv_pair) < 2:
+                    break
+                key = kv_pair[0]
+                val = kv_pair[1].replace('"', '')
+                if key == "transcript_id":
+                    tid = val
+                    tx = Tx(tid, clean_ln)
+                    tx_tbl[tid] = tx
+                    break
+        elif feature == "exon" or feature == "CDS":
+            for info in infos:
+                clean_info = info.strip()
+                kv_pair = clean_info.split(" ")
+                if len(kv_pair) < 2:
+                    break
+                key = kv_pair[0]
+                val = kv_pair[1].replace('"', '')
+                if key == "transcript_id":
+                    tid = val
+                    tx_tbl[tid].add_child(clean_ln)
+                    break
+    fh.close()
+    return tx_tbl
 
 
 def main():

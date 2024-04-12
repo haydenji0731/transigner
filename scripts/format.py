@@ -31,7 +31,6 @@ def load_ref(fn, is_loose):
         if rid not in ref_eq_tbl:
             ref_eq_tbl[rid] = False
         code = line.split("\t")[2].strip()
-        # TODO: fix this
         if rid == '.':
             ref_tbl[tid] = None
             continue
@@ -60,6 +59,7 @@ def load_cnt(fn, tool, is_full):
         # TRANSIGNER
         if tool.value == 1:
             cnt = float(line.split("\t")[2])
+            #cnt = float(line.split("\t")[1]) * 1000000
         # POST-PUSH TRANSIGNER
         elif tool.value == 5:
             cnt = float(line.split("\t")[1])
@@ -210,7 +210,7 @@ def main():
         else:
             mapped_cnt_tbl = map_cnt2ref(cnt_tbl, ref_tbl)
         out_fh = open(args.output_fn, 'w')
-        for tid in mappe:d_cnt_tbl:
+        for tid in mapped_cnt_tbl:
             cnt = mapped_cnt_tbl[tid]
             out_fh.write(tid + "\t" + str(cnt) + "\n")
         out_fh.close()
