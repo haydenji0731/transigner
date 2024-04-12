@@ -30,7 +30,7 @@ $ samtools
 ```
 If this doens't return the samtools manual page, then your samtools installation through conda package manager must have failed. You can attempt building it form the source following instructions [here](http://www.htslib.org/download/). I would recommend that you use version 1.9 instead of 1.18.
   
-4. Installing jf_aligner
+4. Installing jf_aligner (OPTIONAL)
 jf_aligner requires a [Boost](https://www.boost.org/) installation. If you already have Boost installed in your system, you can run
 ```
 $ export BOOST_ROOT=/path/to/boost/
@@ -72,11 +72,13 @@ If you are expecting a high number of isoforms at some gene loci, then you can i
 Next, run the following command to start the `prefilter` module:
 
 ```
-$ python ./prefilter.py -query reads.fastq -target assembled_txs.fasta -aln ${aln_output_dir}/aln.bam -gtf assembled_txs.gtf -t num_threads -tmp ${pref_output_dir}/tmp -o pref_output_dir --score-ratio 0.99 0.01 
+# default - without jf_aligner call
+$ python ./prefilter.py -query reads.fastq -target assembled_txs.fasta -aln ${aln_output_dir}/aln.bam -gtf assembled_txs.gtf -t num_threads -tmp ${pref_output_dir}/tmp -o pref_output_dir --skip-jf --filter
+$ python ./prefilter.py -query reads.fastq -target assembled_txs.fasta -aln ${aln_output_dir}/aln.bam -gtf assembled_txs.gtf -t num_threads -tmp ${pref_output_dir}/tmp -o pref_output_dir --score-ratio X Y --filter 
 ```
-For safety, I recommend that you separate each module's output into separate directory (i.e., align module's output directory != prefilter module's output directory). Additionally, `--score-ratio` indicates how much weight is assigned to minimap vs. jf_aligner. I recommend that 99% of the weight goes to the minimap output and 1% goes to jf_aligner. This achieves a small increase in our read assignment performance. Also, you can use `--pos` optional argument to specify how lenient you want to be with the distance between the 5' end of a transcript and mapping start position of a read, when filtering out non-primary (i.e., secondary, supplementary alignment). By default, I allow for upto 150bp difference between the primary alignment in the 3' direction. 
+`--score-ratio` indicates how much weight is assigned to minimap vs. jf_aligner. I recommend that 99% of the weight goes to the minimap output and 1% goes to jf_aligner (i.e., --score-ratio 0.99 0.01). This achieves a small increase in our read assignment performance. 
 
-`--load` optional argument should allow you to resume your run if your prefiltering step gets terminated. I haven't tested out this feature so let me know if you need assistance on this.
+Also, you can use `--five-prime` and `--three-prime` arguments to specify how lenient you want to be with the distance between the 5' end of a transcript and mapping start position of a read, when filtering out non-primary (i.e., secondary, supplementary alignment). By default, I allow upto 650bp difference with the primary alignment's end distances on the 5' end. 
 
 We'll proceed to run the last module. Before running it, we need to know the size of your compatibility matrix constructed during the prefilter module by running:
 ```
