@@ -9,7 +9,7 @@ g2t_d = dict()
 
 def align(in_fastq, rt, threads, op, odir, sec_num):
     # align as if genomic reads
-    minimap_cmd = "minimap2 -ax map-ont -N " + str(sec_num) + " -t " + str(threads) + " " + rt + " " + in_fastq + \
+    minimap_cmd = "minimap2 -ax map-ont --eqx -N " + str(sec_num) + " -t " + str(threads) + " " + rt + " " + in_fastq + \
                   " | samtools sort -o " + odir + "/" + op + ".bam -@ " + str(threads)
     print(minimap_cmd)
     call(minimap_cmd, shell=True)

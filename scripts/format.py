@@ -10,6 +10,8 @@ class Tool(Enum):
     NANOCOUNT = 2
     BAMBU = 3
     FLAIR = 4
+    PUSH = 5
+    ESPRESSO = 6
 
     def __str__(self):
         return self.name
@@ -29,6 +31,7 @@ def load_ref(fn, is_loose):
         if rid not in ref_eq_tbl:
             ref_eq_tbl[rid] = False
         code = line.split("\t")[2].strip()
+        # TODO: fix this
         if rid == '.':
             ref_tbl[tid] = None
             continue
@@ -57,6 +60,9 @@ def load_cnt(fn, tool, is_full):
         # TRANSIGNER
         if tool.value == 1:
             cnt = float(line.split("\t")[2])
+        # POST-PUSH TRANSIGNER
+        elif tool.value == 5:
+            cnt = float(line.split("\t")[1])
         # NANOCOUNT or BAMBU
         elif tool.value == 2 or tool.value == 3:
             if first:
@@ -96,6 +102,12 @@ def load_cnt(fn, tool, is_full):
             tid = tid_new
 
             cnt = float(line.split("\t")[1])
+        elif tool.value == 6:
+            if first:
+                first = False
+                continue
+            clean_ln = line.strip()
+            cnt = float(clean_ln.split("\t")[3])
         else:
             print("invalid tool option argument provided")
             sys.exit()
@@ -198,7 +210,7 @@ def main():
         else:
             mapped_cnt_tbl = map_cnt2ref(cnt_tbl, ref_tbl)
         out_fh = open(args.output_fn, 'w')
-        for tid in mapped_cnt_tbl:
+        for tid in mappe:d_cnt_tbl:
             cnt = mapped_cnt_tbl[tid]
             out_fh.write(tid + "\t" + str(cnt) + "\n")
         out_fh.close()
