@@ -1,4 +1,4 @@
-# TranSigner: long-read assigner to assembled transcripts
+# TranSigner: assigning long RNA-seq reads to assembled transcripts
 
 TranSigner is a Python program that assigns long ONT reads to the assembled transcripts. This tool takes in a set of reads, and the assembled transcriptome. The transcriptome must be available in both Fasta and GTF/GFF formats. If you only have it in a GTF/GFF format, you'll need to run [GffRead](https://github.com/gpertea/gffread) as follows:
 
