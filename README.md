@@ -87,7 +87,7 @@ $ wc -l ${pref_output_dir}/cmpt_tbl.tsv
 ```
 Take note of this number since you'll need it for running the actual `em` module. Afterwards, you can run `em` by running:
 ```
-$ ./em_dev.py -cmpt ${pref_output_dir}/cmpt_tbl.tsv -scores ${pref_output_dir}/scores.tsv -i ${pref_output_dir}/transcriptome.index --use-score --drop-interval 1 --drop -o $em_output_dir -l 8920552 (this number will be different for you)
+$ ./em.py -cmpt ${pref_output_dir}/cmpt_tbl.tsv -scores ${pref_output_dir}/scores.tsv -i ${pref_output_dir}/transcriptome.index --use-score --drop -o $em_output_dir -l 8920552 (this number will be different for you)
 ```
 ### References ###
 
