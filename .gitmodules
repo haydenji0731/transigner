@@ -1,0 +1,3 @@
+[submodule "pyGANlib"]
+	path = pyGANlib
+	url = https://github.com/haydenji0731/pyGANlib

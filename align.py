@@ -3,7 +3,7 @@
 import argparse
 from subprocess import call
 from datetime import datetime
-from pyGANlib import line, utils
+from pyGANlib import line
 import sys
 import os
 import json
@@ -85,12 +85,12 @@ def main():
             sys.exit(-1)
         max_iso_gene, max_iso_n = calc_max_iso(args.annot, format)
         if args.verbose:
-            print(f"maximum number of isoforms at {max_iso_gene} locus: {max_iso_n}")
+            print(f"maximum number of isoforms at the {max_iso_gene} locus: {max_iso_n}")
             sN = max_iso_n + args.padding
     else:
         sN = args.sec_num
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} aligning query reads to the target transcriptome")
-    # align(args, sN)
+    align(args, sN)
 
 if __name__ == "__main__":
     main()
