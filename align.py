@@ -10,18 +10,17 @@ import json
 from commons import RED, GREEN, RESET
 
 def align(args, sN):
-    out_fn = os.path.join(args.out_dir, "aln.bam")
     if args.mm2 is not None:
         mm2_cmd = "minimap2 " + args.mm2.strip() + " -N " + str(sN) + " -t " + str(args.threads) \
                     + " " + args.target + " " + args.query + " | samtools sort -@ " + str(args.threads) \
-                    + " -o " + out_fn
+                    + " -o " + args.out_file
     else:
         mm2_cmd = "minimap2 -ax map-ont --eqx -N " + str(sN) + " -t " + str(args.threads) \
                     + " " + args.target + " " + args.query + " | samtools sort -@ " + str(args.threads) \
-                    + " -o " + out_fn
+                    + " -o " + args.out_file
     print(mm2_cmd)
     call(mm2_cmd, shell=True)
-    index_cmd = "samtools index " + out_fn + " -@ " + str(args.threads)
+    index_cmd = "samtools index " + args.out_file + " -@ " + str(args.threads)
     print(index_cmd)
     call(index_cmd, shell=True)
 
@@ -57,7 +56,8 @@ def main():
     parser.add_argument('-t', '--target', type=str, help="FASTA", required=True)
     parser.add_argument('-a', '--annot', type=str, help="GTF/GFF", required=False, \
                         default=None)
-    parser.add_argument('-o', '--out-dir', type=str, help="", required=True)
+    parser.add_argument('-d', '--out-dir', type=str, help="", required=False, default=".")
+    parser.add_argument('-o', '--out-file', type=str, help="", required=True)
     parser.add_argument('-sN', '--sec-num', type=int, help="", \
                         default=181, required=False)
     parser.add_argument('-pad', '--padding', type=int, help="", default=50, \

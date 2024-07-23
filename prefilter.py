@@ -88,6 +88,9 @@ def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
 
             if filter:
                 fp_dist = pri_rst - acore.rst
+                if tp_thres == -1:
+                    if fp_dist < fp_thres:
+                        continue
                 tlen = tlen_lst[ti]
                 tp_dist = (pri_tlen - pri_ren) - (tlen - acore.ren)
                 if fp_dist < fp_thres or tp_dist < tp_thres:
@@ -109,7 +112,8 @@ def main():
     parser.add_argument('--filter', default=False, help="", required=False, action='store_true')
     parser.add_argument('--surrender', default=False, help="", required=False, action='store_true')
     parser.add_argument('-fp', '--five-prime', type=int, help="", required=False, default=-800)
-    parser.add_argument('-tp', '--three-prime', type=int, help="", required=False, default=-300)
+    parser.add_argument('-tp', '--three-prime', type=int, help="set -1 for deactivation", \
+                        required=False, default=-300)
     parser.add_argument('-tcov', '--target-cover', type=int, help="", required=False, default=0.25)
     args = parser.parse_args()
 
