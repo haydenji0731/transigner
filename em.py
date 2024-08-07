@@ -153,6 +153,8 @@ def main():
                         required=True)
     parser.add_argument('--drop', default=False, help="", \
                         required=False, action='store_true')
+    parser.add_argument('--push', default=False, help="", \
+                        required=False, action='store_true')
     parser.add_argument('-f', '--drop-fac', type=float, \
                         help="factor used to calculate drop threshold", \
                         required=False, default=0.3)
@@ -234,15 +236,37 @@ def main():
     for qi in range(qi_size):
         qname = qi_map[qi]
         if sum(alpha[qi].values()) == 0: # zeroed out case; doesn't happen as of now
+            print(datetime.now(), f"{RED}WARNING{RESET} read {qname} unassigned")
             un_asgn_fh.write(qname + "\n")
+            continue
         alpha_fh.write(qname)
         for ti in alpha[qi]:
             tname = tnames[ti]
             alpha_ti = alpha[qi][ti]
             if alpha_ti > 0:
                 alpha_fh.write("\t(" + tname + ", " + str(alpha_ti) + ")")
+        alpha_fh.write("\n")
     alpha_fh.close()
 
+    if args.push:
+        pushed_alpha_fn = os.path.join(args.out_dir, "hard_assignments.tsv")
+        pushed_alpha_fh = open(pushed_alpha_fn, 'w')
+        for qi in range(qi_size):
+            qname = qi_map[qi]
+            if sum(alpha[qi].values()) == 0:
+                continue
+            pushed_alpha_fh.write(qname)
+            alpha_qi = alpha[qi]
+            max_alpha = max(alpha_qi.values())
+            max_tis = {key for key, value in alpha_qi.items() if value == max_alpha}
+            if len(max_tis) < 1:
+                print(datetime.now(), f"{RED}WARNING{RESET} a tie detected for read {qname}")
+            for ti in max_tis:
+                tname = tnames[ti]
+                pushed_alpha_fh.write("\t" + tname)
+            pushed_alpha_fh.write("\n")
+        pushed_alpha_fh.close()
+    
     rho_fn = os.path.join(args.out_dir, "abundances.tsv")
     rho_fh = open(rho_fn, 'w')
     for ti in ti_set:

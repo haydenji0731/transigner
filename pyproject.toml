@@ -1,0 +1,9 @@
+[project]
+name = "TranSigner"
+version = "v1.1"
+authors = [
+    { name = "Hyun Joo, Ji", email = "hji20@jh.edu" },
+]
+description = ""
+readme = "README.md"
+requires-python = ""
