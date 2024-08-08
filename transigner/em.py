@@ -132,41 +132,7 @@ def load_pre_est(fn, ti_map):
     return p_est
 
 
-def main():
-    parser = argparse.ArgumentParser(description="")
-    parser.add_argument('--pre-init', default=False, \
-                        help="use pre-computed abundance / coverage to initalize alpha", \
-                        required=False, action='store_true')
-    parser.add_argument('-e', '--estimate', type=str, help="TSV", \
-                        required=False, default=None)
-    parser.add_argument('-s', '--scores', type=str, help="TSV", \
-                        required=False, default=None)
-    parser.add_argument('-i', '--index', type=str, help="", \
-                        required=True)
-    parser.add_argument('-r', '--rho-thres', type=float, \
-                        help="minimum cumulative rho change", \
-                        required=False, default=0.0005)
-    parser.add_argument('-m', '--max-iter', type=int, \
-                        help="maximum number of EM iterations", \
-                        required=False, default=100)
-    parser.add_argument('-o', '--out-dir', type=str, help="", \
-                        required=True)
-    parser.add_argument('--drop', default=False, help="", \
-                        required=False, action='store_true')
-    parser.add_argument('--push', default=False, help="", \
-                        required=False, action='store_true')
-    parser.add_argument('-f', '--drop-fac', type=float, \
-                        help="factor used to calculate drop threshold", \
-                        required=False, default=0.3)
-    parser.add_argument('--naive', default=False, help="", \
-                        required=False, action='store_true')
-    parser.add_argument('-v', '--verbose', default=False, help="", \
-                        required=False, action='store_true')
-    parser.add_argument('--use-score', default=False, help="", \
-                        required=False, action='store_true')
-
-    args = parser.parse_args()
-
+def main(args):
     if args.pre_init and args.estimate is None:
         print(datetime.now(), f"{RED}ERROR{RESET} please provide a pre-estimate file")
         sys.exit(-1)

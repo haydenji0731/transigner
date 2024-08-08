@@ -3,7 +3,7 @@
 import argparse
 from subprocess import call
 from datetime import datetime
-from pyGANlib import line
+from line import Line
 import sys
 import os
 import json
@@ -30,7 +30,7 @@ def calc_max_iso(fn, format, parent_key="gene_id"):
         for ln in f:
             if len(ln.split("\t")) != 9:
                 continue
-            ln_obj = line.Line(ln, format)
+            ln_obj = Line(ln, format)
             if ln_obj.feature == "transcript":
                 try:
                     assert parent_key in ln_obj.attributes
@@ -50,26 +50,7 @@ def calc_max_iso(fn, format, parent_key="gene_id"):
             max_iso_n = gene_tbl[gene_id]
     return max_iso_gene, max_iso_n
 
-def main():
-    parser = argparse.ArgumentParser(description="")
-    parser.add_argument('-q', '--query', type=str, help="FASTQ", required=True)
-    parser.add_argument('-t', '--target', type=str, help="FASTA", required=True)
-    parser.add_argument('-a', '--annot', type=str, help="GTF/GFF", required=False, \
-                        default=None)
-    parser.add_argument('-d', '--out-dir', type=str, help="", required=False, default=".")
-    parser.add_argument('-o', '--out-file', type=str, help="", required=True)
-    parser.add_argument('-sN', '--sec-num', type=int, help="", \
-                        default=181, required=False)
-    parser.add_argument('-pad', '--padding', type=int, help="", default=50, \
-                        required=False)
-    parser.add_argument('-th', '--threads', type=int, help="", default=1, \
-                        required=False)
-    parser.add_argument('-mm2', type=str, help="", default=None, required=False)
-    parser.add_argument('-v', '--verbose', default=False, help="", \
-                        required=False, action='store_true')
-
-    args = parser.parse_args()
-
+def main(args):
     cmd_fn = os.path.join(args.out_dir, "align_cmd_info.json")
     with open(cmd_fn, 'w') as f:
         json.dump(args.__dict__, f, indent=2)

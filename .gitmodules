@@ -1,3 +1,0 @@
-[submodule "pyGANlib"]
-	path = ./transigner/pyGANlib
-	url = https://github.com/haydenji0731/pyGANlib

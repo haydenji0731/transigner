@@ -1,2 +1,4 @@
-pyGANlib/
 __pycache__/
+dist/
+build/
+transigner.egg-info/
