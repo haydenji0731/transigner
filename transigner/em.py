@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-import argparse
 import os
 import json
 from datetime import datetime
 import pickle
 import sys
-from commons import RED, GREEN, RESET
+from transigner.commons import RED, GREEN, RESET
 
 def load_scores(fn, ti_map):
     qi_map = dict()

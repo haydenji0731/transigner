@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
 import pysam
 from tqdm import tqdm
 import pyfastx
@@ -10,7 +9,7 @@ from collections import namedtuple
 import sys
 import json
 from datetime import datetime
-from commons import RED, GREEN, RESET
+from transigner.commons import RED, GREEN, RESET
 
 acore = namedtuple('acore', ['rst', 'ren', 'score'])
 

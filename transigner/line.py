@@ -1,4 +1,4 @@
-from commons import split_ln
+from transigner.commons import split_ln
 import sys
 
 class Line():

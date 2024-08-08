@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
-import argparse
 from subprocess import call
 from datetime import datetime
-from line import Line
+from transigner import line
 import sys
 import os
 import json
-from commons import RED, GREEN, RESET
+from transigner.commons import RED, GREEN, RESET
 
 def align(args, sN):
     if args.mm2 is not None:
@@ -30,7 +29,7 @@ def calc_max_iso(fn, format, parent_key="gene_id"):
         for ln in f:
             if len(ln.split("\t")) != 9:
                 continue
-            ln_obj = Line(ln, format)
+            ln_obj = line.Line(ln, format)
             if ln_obj.feature == "transcript":
                 try:
                     assert parent_key in ln_obj.attributes
