@@ -31,7 +31,7 @@ def parse():
     parser_pref.add_argument('-o', '--out-dir', type=str, help="", required=True)
     parser_pref.add_argument('--filter', default=False, help="", required=False, action='store_true')
     parser_pref.add_argument('--surrender', default=False, help="", required=False, action='store_true')
-    # -550 for cDNA, pacbio samples
+    # -600 for cDNA, pacbio samples
     parser_pref.add_argument('-fp', '--five-prime', type=int, help="", required=False, default=-800)
     parser_pref.add_argument('-tp', '--three-prime', type=int, help="set -1 for deactivation", \
                         required=False, default=-500)
