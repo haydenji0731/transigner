@@ -55,13 +55,12 @@ def parse():
                         required=False, default=100)
     parser_em.add_argument('-o', '--out-dir', type=str, help="", \
                         required=True)
-    parser.add_argument('--drop', default=False, help="", \
+    parser_em.add_argument('--drop', default=False, help="", \
                         required=False, action='store_true')
     parser_em.add_argument('--push', default=False, help="", \
                         required=False, action='store_true')
     parser_em.add_argument('-f', '--drop-fac', type=float, \
-                        help="factor used to calculate drop threshold", \
-                        required=False, default=0.3)
+                        help="factor used to calculate drop threshold", required=False, default=0.3)
     parser_em.add_argument('--naive', default=False, help="", \
                         required=False, action='store_true')
     parser_em.add_argument('-v', '--verbose', default=False, help="", \
