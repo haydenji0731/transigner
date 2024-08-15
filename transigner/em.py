@@ -52,7 +52,6 @@ def init(qi_size, ti_set, ti_size, pre_init, p_est=None):
             rho[ti] = 1 / ti_size
     return rho, alpha
 
-
 def step_e(alpha, rho, qi_size, cmpt_mat, use_score):
     for qi in range(qi_size):
         alpha_qi = dict()
@@ -69,7 +68,6 @@ def step_e(alpha, rho, qi_size, cmpt_mat, use_score):
         if z == 0:
             for ti in loc_ti_set:
                 alpha[qi][ti] = 0
-            print(qi)
         else:
             for ti in loc_ti_set:
                 alpha[qi][ti] = alpha_qi[ti] / z
@@ -89,7 +87,8 @@ def has_converged(old_rho, new_rho, thres):
     delt_rho = 0
     converged = False
     for ti in old_rho:
-        delt_rho += abs(old_rho[ti] - new_rho[ti])
+        # delt_rho += abs(old_rho[ti] - new_rho[ti]
+        delt_rho = max(abs(old_rho[ti] - new_rho[ti]), delt_rho)
     if delt_rho < thres:
         converged = True
     return delt_rho, converged
@@ -112,6 +111,16 @@ def drop_scores(cmpt_mat, alpha, qi_size, df):
         if ctr == 0:
             for ti in max_tis:
                 cmpt_mat[qi][ti] = max_alpha
+
+def relax(rho, ti_set, qi_size):
+    new_rho = dict()
+    for ti in ti_set:
+        if rho[ti] < (1e-5 / qi_size):
+            # print(rho[ti])
+            new_rho[ti] = 0
+        else:
+            new_rho[ti] = rho[ti]
+    return new_rho
 
 def load_pre_est(fn, ti_map):
     p_est = [0] * len(ti_map)
@@ -180,6 +189,9 @@ def main(args):
         if args.verbose:
             print("iteration", num_iter, "cumulative rho delta:", delta_rho)
         rho = new_rho
+        if args.relax:
+            new_rho = relax(rho, ti_set, qi_size)
+            rho = new_rho
         if converged:
             print(datetime.now(), f"{GREEN}PROGRESS{RESET} converged")
             rho_converged = True

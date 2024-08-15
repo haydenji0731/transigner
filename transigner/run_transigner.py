@@ -67,6 +67,8 @@ def parse():
                         required=False, action='store_true')
     parser_em.add_argument('--use-score', default=False, help="", \
                         required=False, action='store_true')
+    parser_em.add_argument('--relax', default=False, help="", \
+                        required=False, action='store_true')
     
     args = parser.parse_args()
 
