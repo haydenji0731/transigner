@@ -35,7 +35,8 @@ def parse():
     parser_pref.add_argument('-fp', '--five-prime', type=int, help="", required=False, default=-800)
     parser_pref.add_argument('-tp', '--three-prime', type=int, help="set -1 for deactivation", \
                         required=False, default=-500)
-    parser_pref.add_argument('-tcov', '--target-cover', type=int, help="", required=False, default=0.25)
+    parser_pref.add_argument('-tcov', '--target-cover', type=float, help="", required=False, default=0.1)
+    parser_pref.add_argument('--model', default=False, help="", required=False, action='store_true')
 
     parser_em = subparsers.add_parser('em', help="arguments for the em module")
     parser_em.add_argument('--pre-init', default=False, \

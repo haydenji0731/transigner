@@ -11,14 +11,25 @@ import json
 from datetime import datetime
 from transigner.commons import RED, GREEN, RESET
 
-acore = namedtuple('acore', ['rst', 'ren', 'score'])
+# model fitting imports
+import numpy as np
+from scipy.optimize import minimize
+from scipy.stats import gaussian_kde, gamma
+from scipy.signal import find_peaks
+from diptest import diptest
 
-def load_aln(fn, ti_map):
+acore = namedtuple('acore', ['rst', 'ren', 'score'])
+gpdf = namedtuple('gpdf', ['alpha', 'beta'])
+
+def load_aln(fn, ti_map, model_pos=False):
     aln_mat = []
     ctr = -1
     qi_map = dict()
     pri_lst = []
     unmapped = set()
+    rpos_tbl = None
+    if model_pos:
+        rpos_tbl = dict()
     with pysam.AlignmentFile(fn, 'rb') as fh:
         for brec in tqdm(fh):
             if brec.is_unmapped:
@@ -49,7 +60,15 @@ def load_aln(fn, ti_map):
                 if not brec.is_secondary:
                     assert pri_lst[qi] == -1
                     pri_lst[qi] = ti
-    return aln_mat, pri_lst, qi_map, unmapped               
+
+                # for now, only modeling start pos in dRNA reads
+                if model_pos:
+                    if ti not in rpos_tbl:
+                        rpos_tbl[ti] = [brec.reference_start]
+                    else:
+                        rpos_tbl[ti].append(brec.reference_start)
+                
+    return aln_mat, pri_lst, qi_map, unmapped, rpos_tbl
 
 
 def build_ti_map(fn):
@@ -64,7 +83,8 @@ def build_ti_map(fn):
     return ti_map, tlen_lst
 
 def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
-                filter, fp_thres, tp_thres, surrender, tcov_thres):
+                filter, fp_thres, tp_thres, surrender, \
+                tcov_thres):
     qi_size = len(qi_map)
     cmpt_mat = [dict() for _ in range(qi_size)]
     for qi in tqdm(range(qi_size)):
@@ -94,6 +114,7 @@ def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
                 tp_dist = (pri_tlen - pri_ren) - (tlen - acore.ren)
                 if fp_dist < fp_thres or tp_dist < tp_thres:
                     continue
+
             cmpt_score = acore.score / pri_score
 
             if ti in cmpt_mat[qi]:
@@ -102,18 +123,86 @@ def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
                 cmpt_mat[qi][ti] = cmpt_score
     return cmpt_mat
 
+def get_tname(ti_map, ti):
+    for tname in ti_map:
+        if ti == ti_map[tname]:
+            return tname
+    return None
+
+def count_peaks(data, bw=0.5, h=0.01):
+    kde = gaussian_kde(data, bw_method=bw)
+    x = np.linspace(min(data), max(data), 1000)
+    y = kde.evaluate(x)
+    peaks, _ = find_peaks(y, height=h)
+    return len(peaks)
+
+def gamma_mixture_ll(params, x):
+    a1, b1, a2, b2, w1, w2 = params
+    if not (0 < w1 < 1 and 0 < w2 < 1 and np.isclose(w1 + w2, 1)):
+        return np.inf
+    if a1 <= 0 or b1 <= 0 or a1 <= 0 or b2 <= 0:
+        return np.inf
+    pdf1 = gamma.pdf(x, a1, scale=b1)
+    pdf2 = gamma.pdf(x, a2, scale=b2)
+    mixture_pdf = w1 * pdf1 + w2 * pdf2
+    return -np.sum(np.log(mixture_pdf + 1e-10)) 
+
+def fit_gamma(data, n_bins=50):
+    hist, bin_edges = np.histogram(data, bins=n_bins, density=True)
+    x = (bin_edges[:-1] + bin_edges[1:]) / 2
+    initial_guess = [2.0, 2.0, 5.0, 1.0, 0.5, 0.5]
+    bounds = [(0.1, None),  (0.1, None), (0.1, None), (0.1, None), (0, 1), (0, 1)]
+    constraints = [{'type': 'eq', 'fun': lambda params: np.sum(params[4:]) - 1}]
+    res = minimize(gamma_mixture_ll, initial_guess, args=(x,), \
+        bounds=bounds, constraints=constraints)
+    return res
 
 def main(args):
     cmd_fn = os.path.join(args.out_dir, "pref_cmd_info.json")
     with open(cmd_fn, 'w') as f:
         json.dump(args.__dict__, f, indent=2)
 
+    # TODO: speed this up by just looking at the bam hdr
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} loading target transcriptome")
     ti_map, tlen_lst = build_ti_map(args.target)
 
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} loading query-to-target alignments")
-    aln_mat, pri_lst, qi_map, unmapped = load_aln(args.aln, ti_map)
+    aln_mat, pri_lst, qi_map, unmapped, rpos_tbl = load_aln(args.aln, ti_map, args.model)
 
+    if rpos_tbl:
+        multimod = dict()
+        print(datetime.now(), f"{GREEN}PROGRESS{RESET} checking multimodality in alignment positions")
+        for ti in rpos_tbl:
+            rpos_arr = np.array(rpos_tbl[ti])
+            # TODO: consider exposing this threshold
+            if len(rpos_tbl[ti]) < 1000:
+                continue
+            elif len(rpos_tbl[ti]) > 72000:
+                n_peaks = count_peaks(rpos_arr)
+                if n_peaks > 1:
+                    multimod_tis.append(ti)
+                res = fit_gamma(rpos_arr)
+                a1, a2, b1, b2, w1, w2 = res.x
+                if a1 < a2:
+                    gpdf_ti = gpdf(alpha=a1, beta=b1)
+                    multimod[ti] = gpdf_ti
+                else:
+                    gpdf_ti = gpdf(alpha=a2, beta=b2)
+                    multimod[ti] = gpdf_ti
+                continue
+            else:
+                dip_stat, pval = diptest(rpos_arr)
+                if pval < 0.05 and dip_stat > 0.05:
+                    res = fit_gamma(rpos_arr)
+                    a1, a2, b1, b2, w1, w2 = res.x
+                    if a1 < a2:
+                        gpdf_ti = gpdf(alpha=a1, beta=b1)
+                        multimod[ti] = gpdf_ti
+                    else:
+                        gpdf_ti = gpdf(alpha=a2, beta=b2)
+                        multimod[ti] = gpdf_ti
+    print(len(multimod))
+    
     # output the unmapped
     unm_fn = os.path.join(args.out_dir, "unmapped.txt")
     unm_fh = open(unm_fn, 'w')
