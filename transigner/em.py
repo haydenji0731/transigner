@@ -6,6 +6,7 @@ from datetime import datetime
 import pickle
 import sys
 from transigner.commons import RED, GREEN, RESET
+from tqdm import tqdm
 
 def load_scores(fn, ti_map):
     qi_map = dict()
@@ -105,7 +106,7 @@ def drop_scores(cmpt_mat, alpha, qi_size, df):
         for ti in cmpt_mat[qi]:
             rf = alpha[qi][ti]
             if rf < sigma_qi:
-                cmpt_mat[qi][ti] = 0 # no fraction of qi assigned to ti
+                cmpt_mat[qi][ti] = 1e-2 # no fraction of qi assigned to ti
             else:
                 ctr += 1
         if ctr == 0:
@@ -141,6 +142,7 @@ def load_pre_est(fn, ti_map):
 
 
 def main(args):
+    print("hello")
     if args.pre_init and args.estimate is None:
         print(datetime.now(), f"{RED}ERROR{RESET} please provide a pre-estimate file")
         sys.exit(-1)
@@ -206,24 +208,30 @@ def main(args):
         f.write(f"last cumulative rho delta: {delta_rho}\n")
     
     alpha_fn = os.path.join(args.out_dir, "assignments.tsv")
-    alpha_fh = open(alpha_fn, 'w')
     un_asgn_fn = os.path.join(args.out_dir, "unassigned.txt")
-    un_asgn_fh = open(un_asgn_fn, 'w')
+    alpha_lines = []
+    un_asgn_lines = []
+
+    print(datetime.now(), f"{GREEN}PROGRESS{RESET} writing out assignments")
     tnames = sorted(ti_map, key=lambda k: ti_map[k])
-    for qi in range(qi_size):
+    for qi in tqdm(range(qi_size)):
         qname = qi_map[qi]
-        if sum(alpha[qi].values()) == 0: # zeroed out case; doesn't happen as of now
+        if sum(alpha[qi].values()) == 0:
             print(datetime.now(), f"{RED}WARNING{RESET} read {qname} unassigned")
-            un_asgn_fh.write(qname + "\n")
+            un_asgn_lines.append(f"{qname}\n")
             continue
-        alpha_fh.write(qname)
-        for ti in alpha[qi]:
-            tname = tnames[ti]
-            alpha_ti = alpha[qi][ti]
+        line = [qname]
+        for ti, alpha_ti in alpha[qi].items():
             if alpha_ti > 0:
-                alpha_fh.write("\t(" + tname + ", " + str(alpha_ti) + ")")
-        alpha_fh.write("\n")
-    alpha_fh.close()
+                tname = tnames[ti]
+                line.append(f"\t({tname}, {alpha_ti})")
+        alpha_lines.append("\t".join(line) + "\n")
+    
+    with open(alpha_fn, 'w') as alpha_fh:
+        alpha_fh.writelines(alpha_lines)
+    
+    with open(un_asgn_fn, 'w') as un_asgn_fh:
+        un_asgn_fh.writelines(un_asgn_lines)
 
     if args.push:
         pushed_alpha_fn = os.path.join(args.out_dir, "hard_assignments.tsv")
@@ -244,17 +252,22 @@ def main(args):
             pushed_alpha_fh.write("\n")
         pushed_alpha_fh.close()
     
+    print(datetime.now(), f"{GREEN}PROGRESS{RESET} writing out abundances")
     rho_fn = os.path.join(args.out_dir, "abundances.tsv")
-    rho_fh = open(rho_fn, 'w')
+    rho_lines = []
+    tnames_set = set(tnames)
     for ti in ti_set:
         tname = tnames[ti]
         rho_ti = rho[ti]
         rc_ti = rho_ti * qi_size
-        rho_fh.write(tname + "\t" + str(rho_ti) + "\t" + str(rc_ti) + "\n")
+        rho_lines.append(f"{tname}\t{rho_ti}\t{rc_ti}\n")
+
     for tname in ti_map:
-        if tname not in tnames:
-            rho_fh.write(tname + "\t0.0\t0\n")
-    rho_fh.close()
+        if tname not in tnames_set:
+            rho_lines.append(f"{tname}\t0.0\t0\n")
+    
+    with open(rho_fn, 'w') as rho_fh:
+        rho_fh.writelines(rho_lines)
         
 if __name__ == "__main__":
     main()
