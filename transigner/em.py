@@ -148,6 +148,7 @@ def load_pre_est(fn, ti_map):
 
 
 def main(args):
+    print("hello")
     if args.pre_init and args.estimate is None:
         print(datetime.now(), f"{RED}ERROR{RESET} please provide a pre-estimate file")
         sys.exit(-1)
