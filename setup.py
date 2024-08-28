@@ -5,7 +5,7 @@ with open("README.md", "r") as f:
     
 setuptools.setup(
 	name="transigner",
-	version="1.1.0",
+	version="1.1.1",
 	author="Hyun Joo Ji",
 	author_email="hji20@jh.edu",
 	description="Long read-to-transcript assignment creator",
