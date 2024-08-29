@@ -93,11 +93,11 @@ def has_converged(old_rho, new_rho, thres):
     if delt_rho < thres:
         converged = True
     return delt_rho, converged
-        
+
 def drop_scores(cmpt_mat, alpha, qi_size, df):
     for qi in range(qi_size):
         n_qi = sum(1 for s in cmpt_mat[qi].values() if s > 0)
-        if n_qi == 1:
+        if n_qi <= 1:
             continue
         sigma_qi = 1 / n_qi + (1 / n_qi * df)
         max_alpha = max(cmpt_mat[qi].values())
@@ -113,11 +113,17 @@ def drop_scores(cmpt_mat, alpha, qi_size, df):
             for ti in max_tis:
                 cmpt_mat[qi][ti] = max_alpha
 
+def get_tname(ti_map, ti):
+    for tname in ti_map:
+        if ti_map[tname] == ti:
+            return tname
+    return None
+
 def relax(rho, ti_set, qi_size):
     new_rho = dict()
     for ti in ti_set:
-        if rho[ti] < (1e-5 / qi_size):
-            # print(rho[ti])
+        # 1e-1
+        if rho[ti] < (1 / qi_size):
             new_rho[ti] = 0
         else:
             new_rho[ti] = rho[ti]
@@ -169,6 +175,7 @@ def main(args):
 
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} loading compatibility scores")
     cmpt_mat, qi_map, qi_size, ti_set = load_scores(args.scores, ti_map)
+    
     ti_size = len(ti_set)
 
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} initializing")
@@ -196,11 +203,20 @@ def main(args):
             rho = new_rho
         if converged:
             print(datetime.now(), f"{GREEN}PROGRESS{RESET} converged")
+            # TODO: is this correct?
+            step_e(alpha, rho, qi_size, cmpt_mat, args.use_score)
+            new_rho = step_m(alpha, ti_set, qi_size)
+            rho = new_rho
             rho_converged = True
             break
         num_iter += 1
     if not rho_converged:
         print(datetime.now(), f"{GREEN}PROGRESS{RESET} max iter reached")
+        # TODO: is this correct?
+        step_e(alpha, rho, qi_size, cmpt_mat, args.use_score)
+        new_rho = step_m(alpha, ti_set, qi_size)
+        rho = new_rho
+        rho_converged = True
     
     summary_fn = os.path.join(args.out_dir, "em_summary.txt")
     with open(summary_fn, 'w') as f:
