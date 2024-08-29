@@ -48,7 +48,9 @@ def parse():
                         required=False, default=None)
     parser_em.add_argument('-i', '--index', type=str, help="", \
                         required=True)
-    parser_em.add_argument('-r', '--rho-thres', type=float, \
+    parser_em.add_argument('-r', '--relax-thres', type=float, help="minimum read count", \
+                        required=False, default=1e-3)
+    parser_em.add_argument('-c', '--conv-thres', type=float, \
                         help="minimum cumulative rho change", \
                         required=False, default=0.0005)
     parser_em.add_argument('-m', '--max-iter', type=int, \

@@ -106,7 +106,7 @@ def drop_scores(cmpt_mat, alpha, qi_size, df):
         for ti in cmpt_mat[qi]:
             rf = alpha[qi][ti]
             if rf < sigma_qi:
-                cmpt_mat[qi][ti] = 1e-2 # no fraction of qi assigned to ti
+                cmpt_mat[qi][ti] = 1e-2 # leave small fraction of r
             else:
                 ctr += 1
         if ctr == 0:
@@ -122,7 +122,6 @@ def get_tname(ti_map, ti):
 def relax(rho, ti_set, qi_size):
     new_rho = dict()
     for ti in ti_set:
-        # 1e-1
         if rho[ti] < (1 / qi_size):
             new_rho[ti] = 0
         else:
@@ -148,7 +147,6 @@ def load_pre_est(fn, ti_map):
 
 
 def main(args):
-    print("hello")
     if args.pre_init and args.estimate is None:
         print(datetime.now(), f"{RED}ERROR{RESET} please provide a pre-estimate file")
         sys.exit(-1)
@@ -194,7 +192,7 @@ def main(args):
                 drop_scores(cmpt_mat, alpha, qi_size, args.drop_fac)
                 step_e(alpha, rho, qi_size, cmpt_mat, args.use_score)
         new_rho = step_m(alpha, ti_set, qi_size)
-        delta_rho, converged = has_converged(rho, new_rho, args.rho_thres)
+        delta_rho, converged = has_converged(rho, new_rho, args.conv_thres)
         if args.verbose:
             print("iteration", num_iter, "cumulative rho delta:", delta_rho)
         rho = new_rho
@@ -225,8 +223,8 @@ def main(args):
     
     alpha_fn = os.path.join(args.out_dir, "assignments.tsv")
     un_asgn_fn = os.path.join(args.out_dir, "unassigned.txt")
-    alpha_lines = []
     un_asgn_lines = []
+    alpha_lines = []
 
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} writing out assignments")
     tnames = sorted(ti_map, key=lambda k: ti_map[k])
