@@ -91,10 +91,12 @@ def build_ti_map(fn):
 
 def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
                 filter, fp_thres, tp_thres, surrender, \
-                tcov_thres, pos_dist, mode_tbl, model=False):
+                tcov_thres, pos_dist, model=False):
     qi_size = len(qi_map)
     cmpt_mat = [dict() for _ in range(qi_size)]
     sur_ctr = 0
+    out_fh = open("./pos_scores.tsv", 'w')
+    print("wa")
     for qi in tqdm(range(qi_size)):
         pri_ti = pri_lst[qi]
         if pri_ti == -1:
@@ -113,18 +115,13 @@ def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
                 pos_score = gamma.pdf(pri_rst, a=pos_dist[pri_ti].alpha, scale=pos_dist[pri_ti].beta)
                 if np.isinf(pos_score):
                     pos_score = 1.0
-                elif pos_score == 0.0:
-                    pos_score += 1e-100
             else:
-                mode = mode_tbl[pri_ti]
-                if mode == -1.0:
-                    pos_score = 0.0
-                else:
-                    pos_score = 1 / (mode + 1)
-            if tcov >= 0.25:
-                cmpt_mat[qi][pri_ti] = 1.0 + 0.05 * pos_score + 0.1 * tcov
-        else:
+                pos_score = None
             cmpt_mat[qi][pri_ti] = 1.0
+        else:
+            pos_score = Nones
+            cmpt_mat[qi][pri_ti] = 1.0
+        out_fh.write(f'{qi}\t{pri_ti}\t1.0\t{pos_score}\t{tcov}\n')
 
         for ti in aln_mat[qi]:
             if ti == pri_ti:
@@ -132,10 +129,7 @@ def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
             acore = aln_mat[qi][ti]
             tlen = tlen_lst[ti]
             tcov = (acore.ren - acore.rst) / tlen
-            if tcov < 0.25:
-                continue
-
-            if filter:
+            if filter: # no filter performs better?
                 fp_dist = pri_rst - acore.rst
                 if tp_thres == -1:
                     if fp_dist < fp_thres:
@@ -150,27 +144,20 @@ def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
                     pos_score = gamma.pdf(acore.rst, a=pos_dist[ti].alpha, scale=pos_dist[ti].beta)
                     if np.isinf(pos_score):
                         pos_score = 1.0
-                    elif pos_score == 0.0:
-                        pos_score += 1e-100
                 else:
-                    mode = mode_tbl[ti]
-                    if mode == -1.0:
-                        pos_score = 0.0
-                    else:
-                        pos_score = 1 / (mode + 1)
+                    pos_score = None
             else:
-                pos_score = 1.0
-            
-            cmpt_score = acore.score / pri_score + 0.05 * pos_score + 0.1 * tcov
-            # out_fh.write(str(qi) + "\t" + str(ti) + "\t" + str(acore.score / pri_score) + \
-            #     "\t" + str(pos_score) + "\t" + str(tcov) + "\n")
+                pos_score = None
+            cmpt_score = acore.score / pri_score
+            # cmpt_score = acore.score / pri_score + 0.05 * pos_score + 0.1 * tcov
+            out_fh.write(f'{qi}\t{ti}\t{cmpt_score}\t{pos_score}\t{tcov}\n')
             if ti in cmpt_mat[qi]:
                 cmpt_mat[qi][ti] = max(cmpt_mat[qi][ti], cmpt_score)
             else:
                 cmpt_mat[qi][ti] = cmpt_score
         if len(cmpt_mat[qi]) == 0:
             sur_ctr += 1
-    # out_fh.close()
+    out_fh.close()
     return cmpt_mat, sur_ctr
 
 def count_peaks(data, bw=0.5, h=0.01):
@@ -232,26 +219,16 @@ def main(args):
 
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} loading query-to-target alignments")
     aln_mat, pri_lst, qi_map, unmapped, rpos_tbl = load_aln(args.aln, ti_map, args.model) # rpos_tbl is None if not args.model
+    # rpos_tbl stores reference start positions; currently only modeling aln start pos
 
     if args.model:
         dpeak_fn = os.path.join(args.out_dir, "double_peaks.txt")
         dpeak_fh = open(dpeak_fn, 'w')
         pos_dist = dict()
-        mode_tbl = dict()
         print(datetime.now(), f"{GREEN}PROGRESS{RESET} checking multimodality in alignment positions")
-
         for ti in tqdm(rpos_tbl):
             rpos_arr = np.array(rpos_tbl[ti])
             tname = get_tname(ti_map, ti)
-            if len(rpos_arr) == 1:
-                mode = rpos_arr[0]
-            else:
-                res = stats.mode(rpos_arr)
-                if res[1] < 10:
-                    mode = -1.0
-                else:
-                    mode = res[0]
-            mode_tbl[ti] = mode
             if len(rpos_tbl[ti]) < 1000:
                 continue
             elif len(rpos_tbl[ti]) > 72000:
@@ -301,8 +278,7 @@ def main(args):
     cmpt_mat, sur_ctr = build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
                             args.filter, args.five_prime, args.three_prime, \
                             args.surrender, args.target_cover, pos_dist, \
-                            mode_tbl, args.model)
-    sys.exit(-1)
+                            args.model)
     
     cmpt_fn = os.path.join(args.out_dir, "cmpt_mat.tsv")
     cmpt_fh = open(cmpt_fn, 'w')

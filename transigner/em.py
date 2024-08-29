@@ -93,37 +93,31 @@ def has_converged(old_rho, new_rho, thres):
     if delt_rho < thres:
         converged = True
     return delt_rho, converged
-
+        
 def drop_scores(cmpt_mat, alpha, qi_size, df):
     for qi in range(qi_size):
         n_qi = sum(1 for s in cmpt_mat[qi].values() if s > 0)
-        if n_qi == 1:
+        if n_qi <= 1:
             continue
         sigma_qi = 1 / n_qi + (1 / n_qi * df)
-        sigma_qi = 1 / n_qi
         max_alpha = max(cmpt_mat[qi].values())
         max_tis = [k for k, v in cmpt_mat[qi].items() if v == max_alpha]
         ctr = 0
         for ti in cmpt_mat[qi]:
             rf = alpha[qi][ti]
             if rf < sigma_qi:
-                cmpt_mat[qi][ti] = 1e-2 # no fraction of qi assigned to ti
+                cmpt_mat[qi][ti] = 1e-2 # leave small fraction of r
             else:
                 ctr += 1
         if ctr == 0:
             for ti in max_tis:
                 cmpt_mat[qi][ti] = max_alpha
 
-def get_tname(ti_map, ti):
-    for tname in ti_map:
-        if ti_map[tname] == ti:
-            return tname
-    return None
-
-def relax(rho, ti_set, qi_size, thres):
+def relax(rho, ti_set, qi_size):
     new_rho = dict()
     for ti in ti_set:
-        if rho[ti] < (thres / qi_size):
+        if rho[ti] < (1 / qi_size):
+            # print(rho[ti])
             new_rho[ti] = 0
         else:
             new_rho[ti] = rho[ti]
@@ -148,7 +142,6 @@ def load_pre_est(fn, ti_map):
 
 
 def main(args):
-    print("hello")
     if args.pre_init and args.estimate is None:
         print(datetime.now(), f"{RED}ERROR{RESET} please provide a pre-estimate file")
         sys.exit(-1)
@@ -175,10 +168,6 @@ def main(args):
 
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} loading compatibility scores")
     cmpt_mat, qi_map, qi_size, ti_set = load_scores(args.scores, ti_map)
-    with open("qi_map.tsv", 'w') as f:
-        for qi in qi_map:
-            f.write(str(qi) + "\t" + qi_map[qi] + "\n")
-    
     ti_size = len(ti_set)
 
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} initializing")
@@ -202,7 +191,7 @@ def main(args):
             print("iteration", num_iter, "cumulative rho delta:", delta_rho)
         rho = new_rho
         if args.relax:
-            new_rho = relax(rho, ti_set, qi_size, args.relax_thres)
+            new_rho = relax(rho, ti_set, qi_size)
             rho = new_rho
         if converged:
             print(datetime.now(), f"{GREEN}PROGRESS{RESET} converged")
@@ -219,8 +208,8 @@ def main(args):
     
     alpha_fn = os.path.join(args.out_dir, "assignments.tsv")
     un_asgn_fn = os.path.join(args.out_dir, "unassigned.txt")
-    alpha_lines = []
     un_asgn_lines = []
+    alpha_lines = []
 
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} writing out assignments")
     tnames = sorted(ti_map, key=lambda k: ti_map[k])
