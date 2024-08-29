@@ -96,7 +96,7 @@ def has_converged(old_rho, new_rho, thres):
 def drop_scores(cmpt_mat, alpha, qi_size, df):
     for qi in range(qi_size):
         n_qi = sum(1 for s in cmpt_mat[qi].values() if s > 0)
-        if n_qi == 1:
+        if n_qi <= 1:
             continue
         sigma_qi = 1 / n_qi + (1 / n_qi * df)
         max_alpha = max(cmpt_mat[qi].values())
