@@ -1,5 +1,4 @@
 from transigner.commons import split_ln
-import sys
 
 class Line():
     def __init__(self, ln, format):

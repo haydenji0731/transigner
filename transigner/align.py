@@ -1,12 +1,7 @@
 #!/usr/bin/env python
 
-from subprocess import call
-from datetime import datetime
 from transigner import line
-import sys
-import os
-import json
-from transigner.commons import RED, GREEN, RESET
+from transigner.commons import *
 
 def align(args, sN):
     if args.mm2 is not None:
@@ -66,7 +61,8 @@ def main(args):
         max_iso_gene, max_iso_n = calc_max_iso(args.annot, format)
         if args.verbose:
             print(f"maximum number of isoforms at the {max_iso_gene} locus: {max_iso_n}")
-            sN = max_iso_n + args.padding
+        # TODO: add this to main
+        sN = max_iso_n + args.padding
     else:
         sN = args.sec_num
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} aligning query reads to the target transcriptome")

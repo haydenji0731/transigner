@@ -27,15 +27,10 @@ def parse():
     
     parser_pref = subparsers.add_parser('prefilter', help="arguments for the prefilter module")
     parser_pref.add_argument('-a', '--aln', type=str, help="BAM or SAM", required=True)
-    parser_pref.add_argument('-t', '--target', type=str, help="FASTA", required=True)
     parser_pref.add_argument('-o', '--out-dir', type=str, help="", required=True)
-    parser_pref.add_argument('--filter', default=False, help="", required=False, action='store_true')
-    parser_pref.add_argument('--surrender', default=False, help="", required=False, action='store_true')
-    # -600 for cDNA, pacbio samples
-    parser_pref.add_argument('-fp', '--five-prime', type=int, help="", required=False, default=-800)
-    parser_pref.add_argument('-tp', '--three-prime', type=int, help="set -1 for deactivation", \
-                        required=False, default=-500)
-    parser_pref.add_argument('-tcov', '--target-cover', type=int, help="", required=False, default=0.25)
+    parser_pref.add_argument('--tsv', default=False, help="", required=False, action='store_true')
+    parser_pref.add_argument('-v', '--verbose', default=False, help="", required=False, action='store_true')
+    parser_pref.add_argument('--resume', default=False, help="", required=False, action='store_true')
 
     parser_em = subparsers.add_parser('em', help="arguments for the em module")
     parser_em.add_argument('--pre-init', default=False, \

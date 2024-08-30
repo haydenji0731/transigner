@@ -6,6 +6,7 @@ from datetime import datetime
 import pickle
 import sys
 from transigner.commons import RED, GREEN, RESET
+from tqdm import tqdm
 
 def load_scores(fn, ti_map):
     qi_map = dict()
