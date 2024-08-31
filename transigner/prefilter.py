@@ -10,6 +10,7 @@ import sys
 import json
 from datetime import datetime
 from transigner.commons import RED, GREEN, RESET
+import math
 
 acore = namedtuple('acore', ['rst', 'ren', 'score'])
 
@@ -63,8 +64,7 @@ def build_ti_map(fn):
         ctr += 1
     return ti_map, tlen_lst
 
-def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
-                filter, fp_thres, tp_thres, surrender, tcov_thres):
+def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, w_fp, w_tp):
     qi_size = len(qi_map)
     cmpt_mat = [dict() for _ in range(qi_size)]
     for qi in tqdm(range(qi_size)):
@@ -74,28 +74,19 @@ def build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
             sys.exit(-1)
         pri_rst, pri_ren, pri_score = aln_mat[qi][pri_ti]
         pri_tlen = tlen_lst[pri_ti]
-        if surrender:
-            tcov = (pri_ren - pri_rst) / tlen_lst[pri_ti]
-            # surrender reads with poor tcov
-            if tcov < tcov_thres:
-                continue
-        cmpt_mat[qi][pri_ti] = 1.0
+        d_fp = pri_rst / pri_tlen
+        d_tp = (pri_tlen - pri_ren) / pri_tlen
+        cmpt_mat[qi][pri_ti] = 1.0 - w_fp * d_fp - w_tp * d_tp
+
         for ti in aln_mat[qi]:
             if ti == pri_ti:
                 continue
             acore = aln_mat[qi][ti]
-
-            if filter:
-                fp_dist = pri_rst - acore.rst
-                if tp_thres == -1:
-                    if fp_dist < fp_thres:
-                        continue
-                tlen = tlen_lst[ti]
-                tp_dist = (pri_tlen - pri_ren) - (tlen - acore.ren)
-                if fp_dist < fp_thres or tp_dist < tp_thres:
-                    continue
-            cmpt_score = acore.score / pri_score
-
+            sigma_a = math.exp((acore.score - pri_score) / 10)
+            tlen_ti = tlen_lst[ti]
+            d_fp = acore.rst / tlen_ti
+            d_tp = (tlen_lst[ti] - acore.ren) / tlen_ti
+            cmpt_score = sigma_a - w_fp * d_fp - w_tp * d_tp
             if ti in cmpt_mat[qi]:
                 cmpt_mat[qi][ti] = max(cmpt_mat[qi][ti], cmpt_score)
             else:
@@ -127,8 +118,7 @@ def main(args):
 
     print(datetime.now(), f"{GREEN}PROGRESS{RESET} building a compatibility matrix")
     cmpt_mat = build_cmpt_mat(aln_mat, qi_map, pri_lst, tlen_lst, \
-                            args.filter, args.five_prime, args.three_prime, \
-                            args.surrender, args.target_cover)
+                            args.weight_fp, args.weight_tp)
     
     cmpt_fn = os.path.join(args.out_dir, "cmpt_mat.tsv")
     cmpt_fh = open(cmpt_fn, 'w')
