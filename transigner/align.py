@@ -11,12 +11,15 @@ from transigner.commons import RED, GREEN, RESET
 def align(args, sN):
     if args.mm2 is not None:
         mm2_cmd = "minimap2 " + args.mm2.strip() + " -N " + str(sN) + " -t " + str(args.threads) \
-                    + " " + args.target + " " + args.query + " | samtools sort -@ " + str(args.threads) \
-                    + " -o " + args.out_file
+                    + " " + args.target + " " + args.query
     else:
         mm2_cmd = "minimap2 -ax map-ont --eqx -N " + str(sN) + " -t " + str(args.threads) \
-                    + " " + args.target + " " + args.query + " | samtools sort -@ " + str(args.threads) \
-                    + " -o " + args.out_file
+                    + " " + args.target + " " + args.query
+    if args.sort:
+        mm2_cmd += "| samtools sort -@ " + str(args.threads) + " -o " + args.out_file
+    else:
+        mm2_cmd += "| samtools view -b -@ " + str(args.threads) + " -o " + args.out_file
+        
     print(mm2_cmd)
     call(mm2_cmd, shell=True)
     index_cmd = "samtools index " + args.out_file + " -@ " + str(args.threads)

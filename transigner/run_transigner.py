@@ -13,6 +13,8 @@ def parse():
     parser_align.add_argument('-t', '--target', type=str, help="FASTA", required=True)
     parser_align.add_argument('-a', '--annot', type=str, help="GTF/GFF", required=False, \
                         default=None)
+    parser_align.add_argument('--sort', default=False, help="sort by coords", \
+                              required=False, action='store_true')
     parser_align.add_argument('-d', '--out-dir', type=str, help="", required=False, default=".")
     parser_align.add_argument('-o', '--out-file', type=str, help="", required=True)
     parser_align.add_argument('-sN', '--sec-num', type=int, help="", \
@@ -27,29 +29,24 @@ def parse():
     
     parser_pref = subparsers.add_parser('prefilter', help="arguments for the prefilter module")
     parser_pref.add_argument('-a', '--aln', type=str, help="BAM or SAM", required=True)
-    parser_pref.add_argument('-t', '--target', type=str, help="FASTA", required=True)
     parser_pref.add_argument('-o', '--out-dir', type=str, help="", required=True)
+    parser_pref.add_argument('--psw', default=False, help="", required=False, action='store_true')
     parser_pref.add_argument('--filter', default=False, help="", required=False, action='store_true')
-    parser_pref.add_argument('--surrender', default=False, help="", required=False, action='store_true')
-    # -600 for cDNA, pacbio samples
-    parser_pref.add_argument('-fp', '--five-prime', type=int, help="", required=False, default=-800)
-    parser_pref.add_argument('-tp', '--three-prime', type=int, help="set -1 for deactivation", \
-                        required=False, default=-500)
-    parser_pref.add_argument('-tcov', '--target-cover', type=int, help="", required=False, default=0.25)
+    # TODO: retrain these params
+    parser_pref.add_argument('--filt-opts', nargs=2, type=int, help="5' threshold, 3' threshold", \
+                             required=False, default=[-800, float('-inf')])
+    # TODO: implement this
+    # parser_pref.add_argument('-preset', required=False, default=None)
 
     parser_em = subparsers.add_parser('em', help="arguments for the em module")
-    parser_em.add_argument('--pre-init', default=False, \
-                        help="use pre-computed abundance / coverage to initalize alpha", \
-                        required=False, action='store_true')
-    parser_em.add_argument('-e', '--estimate', type=str, help="TSV", \
-                        required=False, default=None)
-    parser_em.add_argument('-s', '--scores', type=str, help="TSV", \
-                        required=False, default=None)
+    parser_em.add_argument('-s', '--scores', type=str, help="", \
+                        required=True, default=None)
     parser_em.add_argument('-i', '--index', type=str, help="", \
                         required=True)
+    # TODO: tune the threshold
     parser_em.add_argument('-r', '--rho-thres', type=float, \
                         help="minimum cumulative rho change", \
-                        required=False, default=0.0005)
+                        required=False, default=1e-50)
     parser_em.add_argument('-m', '--max-iter', type=int, \
                         help="maximum number of EM iterations", \
                         required=False, default=100)
@@ -57,18 +54,17 @@ def parse():
                         required=True)
     parser_em.add_argument('--drop', default=False, help="", \
                         required=False, action='store_true')
-    parser_em.add_argument('--push', default=False, help="", \
-                        required=False, action='store_true')
     parser_em.add_argument('-f', '--drop-fac', type=float, \
                         help="factor used to calculate drop threshold", required=False, default=0.3)
     parser_em.add_argument('--naive', default=False, help="", \
                         required=False, action='store_true')
     parser_em.add_argument('-v', '--verbose', default=False, help="", \
                         required=False, action='store_true')
-    parser_em.add_argument('--use-score', default=False, help="", \
+    parser_em.add_argument('--dev', default=False, help="", \
                         required=False, action='store_true')
-    parser_em.add_argument('--relax', default=False, help="", \
-                        required=False, action='store_true')
+    parser_em.add_argument('-true', default=None, help="", type=str, \
+                        required=False)
+    # TODO: add relax step
     
     args = parser.parse_args()
 
