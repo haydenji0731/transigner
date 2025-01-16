@@ -1,0 +1,20 @@
+{
+  "module": "pre",
+  "in_file": "./test_data//aligned.bam",
+  "out_dir": "./test_data/",
+  "estimates": null,
+  "dp_score_model": "e",
+  "dsm_opts": [
+    0.0,
+    5.0
+  ],
+  "use_filter": false,
+  "filt_opts": [
+    0,
+    0,
+    0
+  ],
+  "use_psw": false,
+  "dev": false,
+  "spiked": false
+}

@@ -783,14 +783,12 @@ int main(int argc, char *argv[]) {
         memcpy(rho_prev, rho, tsize * sizeof(double));
         memset(rho, 0, tsize * sizeof(double));
         step_m(qinfo_vec, rho, tmap, qsize);
-
         if (r_thres > 0.0) {
             relax(rho, tsize, r_thres);
         }
-        
         rho_delt = calc_rho_delt(rho_prev, rho, tsize);
-
         if (check_cvrg && rho_delt < c_thres) {
+            ctr++;
             break;
         }
         

@@ -13,20 +13,24 @@ def set_cvrg_thres(fn, dtype, tol, qsize, drop):
     with open(fn, 'r') as fh:
         for _ in fh: ctr += 1
     uperc = ctr / (ctr + qsize) * 100
-    if dtype == 'ont_drna':
-        t = 10 if uperc / tol[0] < 2 else 100
-        if drop: t *= 10
-    elif dtype == 'ont_cdna':
-        # t = 10 if uperc / tol[1] < 2 else 100 # TODO: experiment with this
-        t = 10
-        if drop: t *= 10
-    elif dtype == 'spiked':
-        t = 10
-    elif dtype == 'pacbio':
-        t = 10
+    if qsize >= 1000:
+        if dtype == 'ont_drna':
+            t = 10 if uperc / tol[0] < 2 else 100
+            if drop: t *= 10
+        elif dtype == 'ont_cdna':
+            # t = 10 if uperc / tol[1] < 2 else 100 # TODO: experiment with this
+            t = 10
+            if drop: t *= 10
+        elif dtype == 'spiked':
+            t = 10
+        elif dtype == 'pacbio':
+            t = 10
+        else:
+            print(tmessage("Unrecognized data type. Aborting...", Mtype.ERR))
+            sys.exit(-1)
     else:
-        print(tmessage("Unrecognized data type. Aborting...", Mtype.ERR))
-        sys.exit(-1)
+        print(tmessage("Query size is too small for automatic convergence threshold setting", Mtype.PROG))
+        t = 1
     return t
     
 def main(args) -> None:
@@ -35,19 +39,20 @@ def main(args) -> None:
     store_params(args, param_fn)
 
     qsize, tsize = get_qt_sizes(args.scores)
+    drop = not args.no_drop
 
-    if args.dtype == 'spiked' and not args.drop:
+    if args.dtype == 'spiked' and not drop:
         print(tmessage("Running in spiked mode without --drop; We recommend using the drop feature", Mtype.PROG))
 
     if args.cvrg_thres == 'auto':
-        cvrg_thres = set_cvrg_thres(args.unmapped, args.dtype, args.unmapped_tol, qsize, args.drop)
+        cvrg_thres = set_cvrg_thres(args.unmapped, args.dtype, args.unmapped_tol, qsize, drop)
     else:
         cvrg_thres = args.cvrg_thres
 
     is_naive = 1 if args.naive else 0
     do_push = 1 if args.push else 0
     is_dev = 1 if args.dev else 0
-    drop_fac = args.drop_fac if args.drop else 0
+    drop_fac = args.drop_fac if drop else 0
     relax_thres = args.relax_thres if args.relax else 0
 
     if is_naive:

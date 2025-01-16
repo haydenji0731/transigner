@@ -5,9 +5,10 @@ from transigner import align, pre, em
 
 def parse():
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument('--version', action='version', version='%(prog)s v0.0.1')
+    parser.add_argument('--version', action='version', version='%(prog)s v1.1.3')
     subparsers = parser.add_subparsers(dest='module', \
-                               help="[align, pre, em]")
+                            help="[align, pre, em]")
+    
     # run all modules; easy peasy
     # align module        
     parser_align = subparsers.add_parser('align', help="")
@@ -65,8 +66,7 @@ def parse():
                            action='store_true')
     parser_em.add_argument('--push', default=False, help="", required=False, \
                            action='store_true')
-    # TODO: make this default
-    parser_em.add_argument('--drop', default=False, help="", required=False, \
+    parser_em.add_argument('--no-drop', default=False, help="", required=False, \
                            action='store_true')
     parser_em.add_argument('--relax', default=False, help="", required=False, \
                            action='store_true')
