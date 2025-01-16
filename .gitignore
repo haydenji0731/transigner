@@ -1,6 +1,7 @@
-__pycache__/
-dist/
 build/
+dist/
 transigner.egg-info/
-test/
-.ipynb_checkpoints/
+transigner/*.o
+transigner/__pycache__
+OLD/
+em

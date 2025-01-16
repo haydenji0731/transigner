@@ -1,79 +1,40 @@
-#!/usr/bin/env python
+from transigner.utils import *
+from transigner.opts import *
 
-from subprocess import call
-from datetime import datetime
-from transigner import line
-import sys
-import os
-import json
-from transigner.commons import RED, GREEN, RESET
-
-def align(args, sN):
-    if args.mm2 is not None:
-        mm2_cmd = "minimap2 " + args.mm2.strip() + " -N " + str(sN) + " -t " + str(args.threads) \
-                    + " " + args.target + " " + args.query
-    else:
-        mm2_cmd = "minimap2 -ax map-ont --eqx -N " + str(sN) + " -t " + str(args.threads) \
-                    + " " + args.target + " " + args.query
-    if args.sort:
-        mm2_cmd += "| samtools sort -@ " + str(args.threads) + " -o " + args.out_file
-    else:
-        mm2_cmd += "| samtools view -b -@ " + str(args.threads) + " -o " + args.out_file
-        
-    print(mm2_cmd)
-    call(mm2_cmd, shell=True)
-    index_cmd = "samtools index " + args.out_file + " -@ " + str(args.threads)
-    print(index_cmd)
-    call(index_cmd, shell=True)
-
-def calc_max_iso(fn, format, parent_key="gene_id"):
-    gene_tbl = dict()
-    with open(fn, 'r') as f:
-        for ln in f:
-            if len(ln.split("\t")) != 9:
-                continue
-            ln_obj = line.Line(ln, format)
-            if ln_obj.feature == "transcript":
-                try:
-                    assert parent_key in ln_obj.attributes
-                except:
-                    print(datetime.now(), f"{RED}ERROR{RESET} wrong parent key for transcript features")
+def process_opts(in_s, opt_d):
+    if in_s == "": # no option specified
+        return ""
+    fields = in_s.replace('"', '').strip().split()
+    i = 0
+    new_opt_d = dict()
+    while i < len(fields):
+        f = fields[i]
+        if f in opt_d:
+            if opt_d[f] is False:
+                new_opt_d[f] = True
+            else:
+                if i + 1 >= len(fields):
+                    print(tmessage("Couldn't process options", Mtype.ERR))
                     sys.exit(-1)
-                gene_id = ln_obj.attributes[parent_key]
-                if gene_id in gene_tbl:
-                    gene_tbl[gene_id] += 1
-                else:
-                    gene_tbl[gene_id] = 1
-    max_iso_n = -1
-    max_iso_gene = None
-    for gene_id in gene_tbl:
-        if gene_tbl[gene_id] > max_iso_n:
-            max_iso_gene = gene_id
-            max_iso_n = gene_tbl[gene_id]
-    return max_iso_gene, max_iso_n
+                new_opt_d[f] = fields[i+1]
+        i += 1
+    return(opt_dict2str(new_opt_d))
 
 def main(args):
-    cmd_fn = os.path.join(args.out_dir, "align_cmd_info.json")
-    with open(cmd_fn, 'w') as f:
-        json.dump(args.__dict__, f, indent=2)
-
-    if args.annot is not None:
-        print(datetime.now(), f"{GREEN}PROGRESS{RESET} calculating max secondary alignments param; -sN will be ignored")
-        if args.annot.endswith(("gff", "gff3")):
-            format = "gff"
-        elif args.annot.endswith("gtf"):
-            format = "gtf"
-        else:
-            print(datetime.now(), f"{RED}ERROR{RESET} unrecognized annotation format")
-            sys.exit(-1)
-        max_iso_gene, max_iso_n = calc_max_iso(args.annot, format)
-        if args.verbose:
-            print(f"maximum number of isoforms at the {max_iso_gene} locus: {max_iso_n}")
-            sN = max_iso_n + args.padding
+    param_fn = os.path.join(args.out_dir, "align_params.json")
+    store_params(args, param_fn)
+    ofn = os.path.join(args.out_dir, args.out_file)
+    if args.dev:
+        index_opt_s = process_opts(args.index_opts, index_opt_d)
+        map_opt_s = process_opts(args.map_opts, map_opt_d)
+        baln_opt_s = process_opts(args.base_aln_opts, baln_opt_d)
+        cmd = f'minimap2 -ax {index_opt_s}{map_opt_s}{baln_opt_s}{args.query} {args.target} {args.threads}'
     else:
-        sN = args.sec_num
-    print(datetime.now(), f"{GREEN}PROGRESS{RESET} aligning query reads to the target transcriptome")
-    align(args, sN)
-
-if __name__ == "__main__":
-    main()
+        if args.preset not in presets:
+            print(tmessage("Unknown mm2 preset", Mtype.ERR))
+            sys.exit(-1)
+        cmd = f'minimap2 -ax {args.preset} -N {args.n} -t {args.threads} {args.target} {args.query}'
+    cmd += f' | samtools view -b -o {ofn} -@ {args.threads}'
+    print(tmessage("Alignment started", Mtype.PROG))
+    print(cmd)
+    call(cmd, shell=True)
