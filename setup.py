@@ -11,7 +11,7 @@ def get_em_dir():
 
 setup(
 	name="transigner",
-	version="1.1.2",
+	version="1.1.3",
 	author="Hyun Joo Ji",
 	author_email="hji20@jh.edu",
 	description="assign long RNA-seq reads to transcripts",
