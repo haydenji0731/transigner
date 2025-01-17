@@ -1,65 +1,85 @@
-# TranSigner: assigning long RNA-seq reads to transcripts
+# transigner
 
-TranSigner is a Python program that assigns long reads (compatible with both ONT and PacBio) to transcripts. This tool takes in a set of reads, and the assembled transcriptome. The transcriptome must be available in both fasta and gtf/gff formats. If you only have it in a gtf/gff format, you'll need to run [gffread](https://github.com/gpertea/gffread) as follows:
-```
-gffread -w transcripts.fa -g genome.fa transcripts.gtf
-```
-### Installation ###
+transigner is a program that assigns long RNA-seq reads to transcripts. Users can provide reads in FASTQ format and a set of transcript sequences in multi-FASTA format. [gffread](https://github.com/gpertea/gffread) can extract spliced out transcript sequences from annotation files in gtf/gff format.
 
-You can install TranSigner with pip by running:
-```
-pip install transigner
-```
-or from source:
-```
-git clone https://github.com/haydenji0731/transigner transigner
-cd transigner
-python setup.py install
-```
-You also need [minimap2](https://github.com/lh3/minimap2) and [samtools](http://www.htslib.org/) installed. You can also use the precompiled binaries as long as they are available in your PATH. If you encounter trouble during installation, please open up a Github issue.
+## Installation
 
-### Usage ###
+transigner is optimized for linux systems. We recommend that the users install the program in a conda environment.
 
-TranSigner consists of three modules: align, prefilter, and em (short for expectation-maximization). You can check the arguments for each module by running:
 ```
-transigner [module] -h
-```
-The `align` module takes a set of reads contained in a fastq file and align them to a transcriptome provided as a fasta file. See below:
-```
-transigner align -q reads.fastq -t transcripts.fa -d output_dir -o alignment.bam -p threads
-```
-Next, TranSigner processes the alignment results to compute compatibility scores between reads and transcripts and filter out alignments with questioning 5' and/or 3' end positions. The recommendedfilter thresholds differ by the read type:
-```
-transigner prefilter -a alignment.bam -t transcripts.fa -o output_dir --filter -tp -1 # noisy ONT direct RNA reads
-transigner prefilter -a alignment.bam -t transcripts.fa -o output_dir --filter -tp -500 -fp -600 # ONT cDNA or PacBio IsoSeq
-```
-Finally, an expectation-maximization algorithm is run as follows:
-```
-transigner em -s output_dir/scores.tsv -i output_dir/ti.pkl -o output_dir --drop --use-score
-```
-By running all three modules, you'll obtain `abundances.tsv` and `assignments.tsv` files. See below for the header information for these files:
-```
-# abundances.tsv
-transcript_id  read_count  relative_abundance
-NR_024540.1	1.7149614376942495e-28	1.6757869165652874e-21
+// setting up conda env
+$ conda create -n transigner python && conda activate transigner
+$ conda install bioconda::minimap2 samtools
 
-# assignments.tsv
-read_id  (transcript_id_1, read_fraction_1)  (transcript_id_2, read_fraction_2)  (transcript_id_3, read_fraction_3) ...
-57ebcba2-cde0-4096-b9b9-9bdc4306cb6c    (ENST00000559163, 6.640795584395568e-07)        (ENST00000559884, 0.9507564850356304)   (ENST00000354296, 0.04924285088481117)
+// easiest but without multithreading support
+$ pip install transigner
+
+// much faster (compiling from source)
+$ pip install pysam numpy pandas
+$ make CFLAGS="-fopenmp" && pip install .
 ```
-You can also add the `--push` flag to obtain hard, 1-to-1 assignments between reads and transcripts.
-### References ###
+Either clang or gcc must be available for compiling from source. transigner uses openmp for multithreading, so users should compile with the `-fopenmp` flag for optimal performance. By default, transigner installed through pip has multithreading disabled.
+
+## Usage
+
+transigner consists of three modules: align, prefilter, and em. easy.sh runs these modules at once:
+```
+easy.sh reads.fastq transcripts.fa out_dir // will execute align, pre, and em modules
+```
+There are static variables in this script that requires your attention:
+```
+aln_p # number of threads to use for minimap2 alignment
+em_p # number of threas to use for EM iterations; only possible when openmp is available
+data_type # input data type [ont_drna, ont_cdna, pacbio]
+mode # transigner modes [default, psw, spiked]
+```
+We are still actively investigating the optimal parameter combinations for different data types, and the spiked mode is also under active development.
+
+We provide a small set of query reads and target transcripts under `test_data/` directory. You'll get exactly 1 EM iteration. 
+
+See below for the complete list of arguments:
+```
+Usage: transigner [MODULE] args [options]
+
+*align module args / options:
+      -q, --query
+          query reads (FASTQ)
+      -t, --target
+          target transcripts (FASTA)
+      -d, --out-dir
+      -o, --out-file
+      -n
+          number of secondary alignments to retain
+      -p, --threads
+          number of threads to use for minimap2 alignment
+*prefilter (pre) module args / options:
+      -i, --in-file
+          input alignment file (name sorted BAM file)
+      -d, --out-dir
+      --use-psw
+          use position-specific weights when computing compatibility scores between reads and transcripts
+*em (em) module args / options:
+      -s, --scores
+          compatibility scores (CSV)
+      -d, --out-dir
+      -u, --unmapped
+          file containing unmapped read IDs
+      -m, --tmap-file
+          mappings between transcript IDs and integer indices (CSV)
+      -c, --cvrg-thres
+          EM convergence threshold defined in terms of cumulative read count change
+      --push
+          obtain hard 1-to-1 read assignments to transcripts
+      --no-drop
+          deactivate the drop feature that removes low scoring compatibility relationships
+      -df, --drop-fac
+          drop factor used to calculate the threshold for the drop
+```
+
+## Output
+
+TODO
+
+## Cite
+
 > Ji, H. J. and M. Pertea (2024). "Enhancing transcriptome expression quantification through accurate assignment of long RNA sequencing reads with TranSigner." bioRxiv: 2024.2004.2013.589356. [doi:https://doi.org/10.1101/2024.04.13.589356]
-
-> Pertea, G., & Pertea, M. (2020). GFF utilities: GffRead and GffCompare [version 2; peer review: 3 approved].
-> *F1000Research*, **9**:304. [doi:10.12688/f1000research.23297.2]
-
-> Danecek, P., Bonfield, J. K., Liddle, J., Marshall, J., Ohan, V., Pollard, M. O., ... & Li, H. (2021). Twelve years of SAMtools and BCFtools. *Gigascience*, > **10(2)**, giab008. [doi:10.1093/gigascience/giab008]
-
-> Li, H. (2018). Minimap2: pairwise alignment for nucleotide sequences.
-> *Bioinformatics*, **34**:3094-3100. [doi:10.1093/bioinformatics/bty191]
-
-> Li, H. (2021). New strategies to improve minimap2 alignment accuracy.
-> *Bioinformatics*, **37**:4572-4574. [doi:10.1093/bioinformatics/btab705]
-
-> Lianming Du, Qin Liu, Zhenxin Fan, Jie Tang, Xiuyue Zhang, Megan Price, Bisong Yue, Kelei Zhao. Pyfastx: a robust Python package for fast random access to sequences from plain and gzipped FASTA/Q files. Briefings in Bioinformatics, 2021, 22(4):bbaa368. 
