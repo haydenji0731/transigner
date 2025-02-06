@@ -155,9 +155,9 @@ def write_psw_data(tsize, per_tx_cov, per_base_cov, psw, cum_psw, tnames, out_di
     out_lns_cpsw = []
     for i in range(tsize):
         tname = tnames[i]
-        out_lns_pbase.append(f'{tname},{np.array2string(per_base_cov[i], separator=' ')}')
-        out_lns_psw.append(f'{tname},{np.array2string(psw[i], separator=' ')}')
-        out_lns_cpsw.append(f'{tname},{np.array2string(cum_psw[i], separator=' ')}')
+        out_lns_pbase.append(f"{tname},{np.array2string(per_base_cov[i], separator=' ')}")
+        out_lns_psw.append(f"{tname},{np.array2string(psw[i], separator=' ')}")
+        out_lns_cpsw.append(f"{tname},{np.array2string(cum_psw[i], separator=' ')}")
     fn = os.path.join(out_dir, 'per_base_cov.csv')
     join_and_write(out_lns_pbase, fn)
     fn = os.path.join(out_dir, 'psw.csv')
