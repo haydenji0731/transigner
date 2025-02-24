@@ -24,15 +24,19 @@ Either clang or gcc must be available for compiling from source. transigner uses
 
 transigner consists of three modules: align, prefilter, and em. easy.sh runs these modules at once:
 ```
-easy.sh reads.fastq transcripts.fa out_dir // will execute align, pre, and em modules
+easy.sh -a aligner_threads -e EM_threads -d data_type -m mode <reads.fastq> <transcripts.fa> <out_dir>   
+// will execute align, pre, and em modules
 ```
-There are static variables in this script that requires your attention:
+
+The script takes four options which require values to be passed to them. 
 ```
-aln_p # number of threads to use for minimap2 alignment
-em_p # number of threas to use for EM iterations; only possible when openmp is available
-data_type # input data type [ont_drna, ont_cdna, pacbio]
-mode # transigner modes [default, psw, spiked]
+-a number of threads to use for minimap2 alignment (integer)
+-e number of threads to use for EM iterations; only possible when openmp is available, if unavailable set this as '1' (integer)
+-d input data type [ont_drna, ont_cdna, pacbio] 
+-m transigner modes [default, psw, spiked] 
 ```
+The three positional arguments must be provided in correct order after the options: 1) reads.fastq 2) transcripts.fa 3) output_directory 
+
 We are still actively investigating the optimal parameter combinations for different data types, and the spiked mode is also under active development.
 
 We provide a small set of query reads and target transcripts under `test_data/` directory. You'll get exactly 1 EM iteration. 
@@ -74,6 +78,8 @@ Usage: transigner [MODULE] args [options]
           deactivate the drop feature that removes low scoring compatibility relationships
       -df, --drop-fac
           drop factor used to calculate the threshold for the drop
+      -dtype 
+          input data type [ont_drna, ont_cdna, pacbio]
 ```
 
 ## Output
