@@ -8,7 +8,8 @@ transigner is optimized for linux systems. We recommend that the users install t
 
 ```
 // setting up conda env
-$ conda create -n transigner python && conda activate transigner
+$ conda create -n transigner python
+$ conda activate transigner
 $ conda install bioconda::minimap2 samtools
 
 // easiest but without multithreading support
