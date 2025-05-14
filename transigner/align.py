@@ -28,7 +28,7 @@ def main(args):
         index_opt_s = process_opts(args.index_opts, index_opt_d)
         map_opt_s = process_opts(args.map_opts, map_opt_d)
         baln_opt_s = process_opts(args.base_aln_opts, baln_opt_d)
-        cmd = f'minimap2 -ax {index_opt_s}{map_opt_s}{baln_opt_s}{args.query} {args.target} {args.threads}'
+        cmd = f'minimap2 -ax {index_opt_s}{map_opt_s}{baln_opt_s}{args.target} {args.query} {args.threads}'
     else:
         if args.preset not in presets:
             print(tmessage("Unknown mm2 preset", Mtype.ERR))
