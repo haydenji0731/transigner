@@ -2,7 +2,6 @@
 # define UTILS_H
 
 # include <xtensor/containers/xarray.hpp>
-# include <xtensor.hpp>
 # include <xtensor/io/xio.hpp>
 # include <xtensor/io/xio.hpp>
 # include <xtensor/views/xview.hpp>
@@ -14,7 +13,6 @@
 # include <iostream>
 # include <string>
 # include <unordered_set>
-
 # include <unordered_map>
 # include <vector>
 # include <string>

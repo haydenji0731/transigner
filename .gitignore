@@ -1,4 +1,7 @@
 .vscode/
 paper/
 libs/
-test/
+tests/
+src/*.o
+src/transigner
+transigner

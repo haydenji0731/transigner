@@ -1,7 +1,7 @@
 # include "utils.hpp"
 # include <cxxopts.hpp>
 
-# define VERSION "0.0.1"
+# define VERSION "1.2.0"
 
 cxxopts::ParseResult parse_args(int argc, char* argv[]) {
     cxxopts::Options options("transigner", "TranSigner version " VERSION);
@@ -52,7 +52,7 @@ void align(const std::string reads_file, const std::string txome_file, \
                     + reads_file + " | samtools view -b -o " + out_file +
                     " -@ " + std::to_string(threads);
     std::cout << cmd << std::endl;
-    int return_code = std::system(cmd.c_str());
+    std::system(cmd.c_str());
 }
 
 std::vector<rundle> load_alignments(htsFile* hts_file, sam_hdr_t* hdr, bam1_t* b_next, \
@@ -164,9 +164,8 @@ std::vector<size_t> compute_weights_psw(std::vector<rundle>& rundles, size_t tsi
     return multi_mappers;
 }
 
-std::vector<size_t> compute_weights(std::vector<rundle>& rundles, size_t tsize, \
-    size_t qsize, uint32_t* tlens, std::vector<xt::xarray<float>>& score_ws, \
-    xt::xarray<float>& uniq_rho) {
+std::vector<size_t> compute_weights(std::vector<rundle>& rundles, size_t qsize, \
+    std::vector<xt::xarray<float>>& score_ws, xt::xarray<float>& uniq_rho) {
     
     std::vector<size_t> multi_mappers;
     multi_mappers.reserve(qsize);
@@ -183,7 +182,6 @@ std::vector<size_t> compute_weights(std::vector<rundle>& rundles, size_t tsize, 
         xt::xarray<float> score_data = xt::empty<float>({rundle.alns.size()});
         for (size_t j = 0; j < rundle.alns.size(); ++j) {
             auto& a = rundle.alns[j];
-            int32_t tid = a.tid;
             score_data[j] = a.score; 
         }
         score_data = (score_data - rundle.max_score) / 5.0f;
@@ -319,7 +317,6 @@ xt::xarray<float> do_em(std::vector<size_t>& multi_mappers, std::vector<rundle>&
                 for (aln& a : r.alns) {
                     a.prob = (rho[a.tid] * a.weight) / z;
                     local_rho[a.tid] += a.prob;
-                    // local_rho[a.tid] += (rho[a.tid] * a.prob) / z;
                 }
             }
         }
@@ -389,15 +386,14 @@ int main(int argc, char* argv[]) {
         multi_mappers = compute_weights_psw(rundles, tsize, qsize, \
             tlens, pos_ws, score_ws, uniq_rho);
     } else {
-        multi_mappers = compute_weights(rundles, tsize, qsize, \
-            tlens, score_ws, uniq_rho);
+        multi_mappers = compute_weights(rundles, qsize, score_ws, uniq_rho);
     }
 
     xt::xarray<float> rho = xt::zeros<float>({tsize});
     // TODO: consider initializing just the aligned tids; shouldn't have much impact on EM results
     rho.fill(static_cast<float>(qsize) / static_cast<float>(aligned_tids.size()));
 
-    size_t ctr = 0;
+    int ctr = 0;
     xt::xarray<float> new_rho;
     float delta = 0.0f;
     const float epsilon = res["epsilon"].as<float>();
