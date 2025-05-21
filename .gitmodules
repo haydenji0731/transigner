@@ -7,3 +7,6 @@
 [submodule "external/xtl"]
 	path = external/xtl
 	url = https://github.com/xtensor-stack/xtl.git
+[submodule "external/htslib"]
+	path = external/htslib
+	url = https://github.com/samtools/htslib.git
