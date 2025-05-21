@@ -1,7 +1,7 @@
 HTSLIB_DIR := ./external/htslib
 CXX := $(if $(CXX),$(CXX),g++)
 CXXFLAGS := -std=c++20 -Wall -Wextra
-LDFLAGS := -L$(HTSLIB_DIR) -lhts
+LDFLAGS := -L$(HTSLIB_DIR) -lhts -Wl,-rpath=$(abspath $(HTSLIB_DIR))
 INCLUDES := -Iexternal/cxxopts/include -Iexternal/xtl/include -Iexternal/xtensor/include -I$(HTSLIB_DIR)
 
 RELEASE_CXXFLAGS := -O3 -DNDEBUG -march=native
