@@ -1,7 +1,8 @@
 .vscode/
 paper/
 libs/
-tests/
 src/*.o
 src/transigner
 transigner
+tests/test_data/big.bam
+tests/scratch/

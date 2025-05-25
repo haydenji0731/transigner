@@ -2,6 +2,51 @@
 
 namespace fs = std::filesystem;
 
+int discrete_distn(const rundle& r) {
+    std::vector<float> probs;
+    probs.reserve(r.alns.size());
+    for (const aln& a : r.alns) {
+        assert (a.prob != -1);
+        probs.push_back(a.prob);
+    }
+
+    static std::random_device seed;
+    static std::mt19937 gen(seed());
+
+    std::discrete_distribution<> dist(probs.begin(), probs.end());
+    return dist(gen);
+}
+
+xt::xarray<float> assign_by_sampling(std::vector<rundle>& rundles,
+                    std::vector<size_t>& multi_mappers, size_t tsize) {
+
+    xt::xarray<float> new_rho = xt::zeros<float>({tsize});
+    int num_threads = omp_get_max_threads();
+    std::vector<xt::xarray<float>> thread_rhos(num_threads, xt::zeros<float>({tsize}));
+
+    #pragma omp parallel
+    {
+        int pid = omp_get_thread_num();
+        xt::xarray<float>& local_rho = thread_rhos[pid];
+        # pragma omp for schedule(static)
+        for (size_t mi = 0; mi < multi_mappers.size(); ++mi) {
+            size_t i = multi_mappers[mi];
+            rundle& r = rundles[i];
+            int sel_ai = discrete_distn(r);
+            for (size_t j = 0; j < r.alns.size(); ++j) {
+                aln& a = r.alns[j];
+                a.prob = (j == static_cast<size_t>(sel_ai)) ? 1.0f : 0.0f;
+                local_rho[a.tid] += a.prob;
+            }
+        }
+
+    }
+    for (int t = 0; t < num_threads; ++t) {
+        new_rho += thread_rhos[t];
+    }
+    return new_rho;
+}
+
 bool is_fastq(const std::string& fn) {
     size_t len = fn.size();
     return (len >= 6 && fn.compare(len - 6, 6, ".fastq") == 0) ||
@@ -56,11 +101,15 @@ void write_assignments(const std::string& fn, std::vector<rundle>& rundles, \
         ss << r.qname;
 
         for (const aln& a : r.alns) {
-            ss << '\t' << tnames[a.tid] << ',';
-            if (a.prob == -1) {
-                ss << one_str;
+            if (a.prob == 0) {
+                continue;
             } else {
-                ss << a.prob;
+                ss << '\t' << tnames[a.tid] << ',';
+                if (a.prob == -1) {
+                    ss << one_str; // uniquely aligned
+                } else {
+                    ss << a.prob;
+                }
             }
         }
 

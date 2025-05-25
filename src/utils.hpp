@@ -23,6 +23,7 @@
 # include <cmath>
 # include <filesystem>
 # include <fstream>
+# include <random>
 
 # define RED_TEXT(msg) "\033[1;31m" msg "\033[0m"
 # define GREEN_TEXT(msg) "\033[1;32m" msg "\033[0m"
@@ -50,10 +51,12 @@ void write_abundances(const std::string& fn, const xt::xarray<float>& final_rho,
                     char** tnames, size_t tsize);
 
 // TODO
-void discrete_distn();
-void assign_by_sampling();
+int discrete_distn(const rundle& r);
+xt::xarray<float> assign_by_sampling(std::vector<rundle>& rundles,
+                    std::vector<size_t>& multi_mappers, size_t tsize);
 
-void drop_low_prob(std::vector<rundle>& rundles, std::vector<size_t>& multi_mappers, \
+void drop_low_prob(std::vector<rundle>& rundles,
+                std::vector<size_t>& multi_mappers,
                 const float min_pk, const float base_w);
 void zero_out_rho(xt::xarray<float>& rho, float thres);
 

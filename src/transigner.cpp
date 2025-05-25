@@ -6,21 +6,23 @@
 cxxopts::ParseResult parse_args(int argc, char* argv[]) {
     cxxopts::Options options("transigner", "TranSigner version " VERSION);
 
+    // bool values don't display the default_value automatically
     options.add_options()
-        ("o,out-dir", "output directory (default: .)", cxxopts::value<std::string>()->default_value("."))
-        ("t,tx", "transcripts.fa (default: none)", cxxopts::value<std::string>())
-        ("n,max-iter", "number of max EM iterations (default: 1000)", cxxopts::value<int>()->default_value("1000"))
-        ("e,epsilon", "EM convergence threshold ε (default: 10)", cxxopts::value<float>()->default_value("10.0"))
-        ("c,constant", "τ constant in exponential decay fn (default: 5.0)", cxxopts::value<float>())
-        ("s,sample", "assign by sampling (default: false)", cxxopts::value<bool>()->default_value("false"))
+        ("o,out-dir", "output directory", cxxopts::value<std::string>()->default_value("."))
+        ("t,tx", "fasta file containing transcript sequences", cxxopts::value<std::string>())
+        ("a,max-aln", "maximum number of alignments per read", cxxopts::value<int>()->default_value("181"))
+        ("n,max-iter", "number of max EM iterations", cxxopts::value<int>()->default_value("1000"))
+        ("e,epsilon", "EM convergence threshold ε", cxxopts::value<float>()->default_value("10.0"))
+        ("c,constant", "τ constant in exponential decay fn", cxxopts::value<float>()->default_value("5.0"))
+        ("sample", "assign by sampling (default: false)", cxxopts::value<bool>()->default_value("false"))
         ("use-psw", "use positional weights (default: false)", cxxopts::value<bool>()->default_value("false"))
         ("r,min-rho", "zero out txes with read counts below this threshold", cxxopts::value<float>()->default_value("0.1"))
-        ("keep-low", "keep low-prob alignments", cxxopts::value<bool>()->default_value("false"))
-        ("k,min-pk", "constant to computed min alignment prob (default: 0.1)", cxxopts::value<float>()->default_value("0.1"))
-        ("w,base-w", "base weight for an alignment (default: 0.0)", cxxopts::value<float>()->default_value("0.0"))
-        ("d,data-type", "long read RNA-seq data type (default: ont)", cxxopts::value<std::string>()->default_value("ont"))
-        ("p,threads", "number of threads (default: 1)", cxxopts::value<int>()->default_value("1"))
-        ("v,verbose", "enable verbose output for more detailed logging", cxxopts::value<bool>()->default_value("false"))
+        ("keep-low", "keep low-prob alignments (default: false)", cxxopts::value<bool>()->default_value("false"))
+        ("k,min-pk", "constant to computed min alignment prob", cxxopts::value<float>()->default_value("0.1"))
+        ("w,base-w", "base weight for an alignment", cxxopts::value<float>()->default_value("0.0"))
+        ("d,data-type", "long read RNA-seq data type", cxxopts::value<std::string>()->default_value("ont"))
+        ("p,threads", "number of threads", cxxopts::value<int>()->default_value("1"))
+        ("v,verbose", "enable verbose output for more detailed logging (default: false)", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "usage")
         ("input", "input filename", cxxopts::value<std::string>())
     ;
@@ -36,7 +38,8 @@ cxxopts::ParseResult parse_args(int argc, char* argv[]) {
 }
 
 void align(const std::string reads_file, const std::string txome_file, \
-    const std::string out_file, const std::string dtype, size_t threads) {
+    const std::string out_file, const std::string dtype, size_t threads, \
+    size_t num_alignments) {
     
     std::string preset;
 
@@ -48,8 +51,9 @@ void align(const std::string reads_file, const std::string txome_file, \
         std::cerr << RED_TEXT("error: ") << "unknown data type '" << dtype << "'\n";
     } // TODO: consider adding isoseq specific preset
 
-    std::string cmd = "minimap2 -ax " + preset + " " + txome_file + " "
-                    + reads_file + " | samtools view -b -o " + out_file +
+    std::string cmd = "minimap2 -ax " + preset + " -N " + std::to_string(num_alignments) + 
+                    " -t " + std::to_string(threads) + " " + txome_file + " " +
+                    reads_file + " | samtools view -b -o " + out_file +
                     " -@ " + std::to_string(threads);
     std::cout << cmd << std::endl;
     std::system(cmd.c_str());
@@ -137,7 +141,7 @@ std::vector<size_t> compute_weights_psw(std::vector<rundle>& rundles, size_t tsi
             xt::view(pos_ws[tid], xt::range(start, end)) += 1;
             score_data[j] = a.score; 
         }
-        score_data = (score_data - rundle.max_score) / 5.0f;
+        score_data = (score_data - rundle.max_score) / 5.0f; // TODO: expose this param
         score_ws[i] = xt::exp(score_data);
     }
     for (size_t k = 0; k < tsize; ++k) {
@@ -184,7 +188,7 @@ std::vector<size_t> compute_weights(std::vector<rundle>& rundles, size_t qsize, 
             auto& a = rundle.alns[j];
             score_data[j] = a.score; 
         }
-        score_data = (score_data - rundle.max_score) / 5.0f;
+        score_data = (score_data - rundle.max_score) / 5.0f; // TODO: expose this
         score_ws[i] = xt::exp(score_data);
     }
     return multi_mappers;
@@ -333,6 +337,7 @@ int main(int argc, char* argv[]) {
 
     std::string in_fn = res["input"].as<std::string>();
     int num_threads = res["threads"].as<int>();
+    int num_alignments = res["max-aln"].as<int>();
     std::string out_dir = res["out-dir"].as<std::string>();
 
     if (is_fastq(in_fn)) {
@@ -344,7 +349,7 @@ int main(int argc, char* argv[]) {
         const std::string& dtype = res["data-type"].as<std::string>();
         std::string out_fn = join_path(out_dir, "alignments.bam");
 
-        align(in_fn, txome_fn, out_fn, dtype, num_threads);
+        align(in_fn, txome_fn, out_fn, dtype, num_threads, num_alignments);
         in_fn = out_fn;
         
     } else if(is_bam(in_fn)) {
@@ -455,6 +460,20 @@ int main(int argc, char* argv[]) {
 
     if (ctr == max_iter) {
         std::cout << GREEN_TEXT("status: ") << "max iteration (" << max_iter << ") reached" << std::endl;
+    }
+
+    const bool do_sample = res["sample"].as<bool>();
+
+    if (do_sample) {
+        new_rho = assign_by_sampling(rundles, multi_mappers, tsize);
+        new_rho += uniq_rho;
+
+        # ifdef DEBUG
+        delta = xt::sum(xt::abs(new_rho - rho))();
+        printf("\tdelta after sampling: %f\n", delta);
+        # endif
+
+        rho = std::move(new_rho);
     }
 
     write_abundances(join_path(out_dir, "abundances.csv"), rho, tnames, tsize);
