@@ -1,0 +1,4 @@
+minimap2 version: 2.29-r1283 (04/18/25)
+- observed quite a bit of performance difference when a different  version of minimap2 is used
+- using the same release binary reproduces the same statistics
+- for the manuscript, 2.26-r1175 was used

@@ -1,0 +1,12 @@
+[submodule "external/xtensor"]
+	path = external/xtensor
+	url = https://github.com/xtensor-stack/xtensor.git
+[submodule "external/cxxopts"]
+	path = external/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git
+[submodule "external/xtl"]
+	path = external/xtl
+	url = https://github.com/xtensor-stack/xtl.git
+[submodule "external/htslib"]
+	path = external/htslib
+	url = https://github.com/samtools/htslib.git
