@@ -24,11 +24,17 @@ cxxopts::ParseResult parse_args(int argc, char* argv[]) {
         ("p,threads", "number of threads", cxxopts::value<int>()->default_value("1"))
         ("v,verbose", "enable verbose output for more detailed logging (default: false)", cxxopts::value<bool>()->default_value("false"))
         ("h,help", "usage")
+        ("V,version", "Print version information and exit")
         ("input", "input filename", cxxopts::value<std::string>())
     ;
     options.parse_positional({"input"});
 
     auto res = options.parse(argc, argv);
+
+    if (res.count("version")) {
+        std::cout << "transigner " << GREEN_TEXT("v") << GREEN_TEXT(VERSION) << std::endl;
+        std::exit(0);
+    }
 
     if (res.count("help")) {
         std::cout << options.help() << std::endl;
