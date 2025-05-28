@@ -1,7 +1,8 @@
-build/
-dist/
-transigner.egg-info/
-transigner/*.o
-transigner/__pycache__
-OLD/
-em
+.vscode/
+paper/
+libs/
+src/*.o
+src/transigner
+transigner
+tests/test_data/big.bam
+tests/scratch/
